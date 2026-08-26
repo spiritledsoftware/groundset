@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "groundset",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-26",
+  "observability": {
+    "enabled": true
+  }
+}
