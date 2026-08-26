@@ -1,0 +1,18 @@
+{
+  "name": "groundset",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.23.0",
+  "scripts": {
+    "check": "pnpm typecheck && wrangler deploy --dry-run",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "typecheck": "tsc",
+    "typegen": "wrangler types"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "wrangler": "4.126.0"
+  }
+}

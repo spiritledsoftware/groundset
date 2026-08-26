@@ -1,0 +1,8 @@
+[package]
+name = "axum-websocket-message"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "=0.8.9", default-features = false, features = ["ws"] }
+

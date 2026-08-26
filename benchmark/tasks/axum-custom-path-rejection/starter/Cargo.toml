@@ -1,0 +1,15 @@
+[package]
+name = "axum-custom-path-rejection"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "=0.8.9", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+http-body-util = "0.1"
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tower = { version = "0.5", features = ["util"] }
+
