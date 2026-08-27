@@ -104,6 +104,26 @@ _Avoid_: Development set, live traffic
 Evidence that an Agent builder can replace a bespoke RAG path with Groundset while preserving or improving task quality, traceability, and maintenance effort. Model-size substitution and epistemic quality are secondary v1 measurements, in that order.
 _Avoid_: Model benchmark, proof of concept
 
+**Technical proof**:
+The public, reproducible first stage of the Proof of value, using a public Corpus and an independently maintained RAG baseline. It can test the four Proof gates and secondary measurements, but cannot authorize production planning without Design-partner validation.
+_Avoid_: Design-partner validation, production proof
+
+**Proving Corpus**:
+The downloadable, legally redistributable public source material and task sets used for the Technical proof. It may package complementary upstream Collections, but Groundset preserves raw upstream Snapshots as canonical and adds deterministic packaging and enrichment rather than manually authoring a new knowledge base. Benchmark chunks, evidence spans, nuggets, and labels remain derived selections or attributed Assertions.
+_Avoid_: Design-partner Corpus, benchmark answers
+
+**Independent RAG baseline**:
+A published task-specific retrieval or RAG baseline and scorer maintained by dataset authors or independent researchers, with runnable code, frozen configuration, and reported results. Groundset may reproduce it but does not design the comparator.
+_Avoid_: Framework default, Groundset-tuned comparator
+
+**Benchmark fixture**:
+A clearly labeled scenario derived from real source Snapshots to test add, supersede, restrict, remove, conflict, or missing-answer behavior. A Benchmark fixture is excluded from the primary task-quality score and does not become asserted ground truth.
+_Avoid_: Source, benchmark answer
+
+**Benchmark label**:
+An upstream verdict, relevance judgment, or other scoring target recorded as an attributed Assertion with its dataset, annotator, or generating model provenance. A Benchmark label is not universal truth.
+_Avoid_: Fact, canonical truth
+
 **Bespoke RAG baseline**:
 The Agent builder's tuned retrieval system evaluated against Groundset with the same corpus, model, tools, time budget, and task set. Model-only evaluation is diagnostic; naive top-k retrieval is not the primary comparison.
 _Avoid_: Naive RAG, model-only baseline
