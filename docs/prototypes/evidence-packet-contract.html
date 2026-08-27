@@ -228,6 +228,7 @@
         const recommended = Object.freeze({
           request: "needs",
           concepts: "situation",
+          authority: "policy",
           material: "presentation",
           bearing: "per-need",
           disagreement: "preserve",
@@ -255,6 +256,16 @@
               { value: "named-only", label: "Named only" },
             ],
             note: "Indicators and examples should retrieve a useful concept before the task knows its name.",
+          },
+          {
+            id: "authority",
+            title: "Choose strong material",
+            recommended: "policy",
+            options: [
+              { value: "policy", label: "Policy + assessments" },
+              { value: "similarity", label: "Similarity alone" },
+            ],
+            note: "Indexes find candidates. A versioned policy decides which sources are fit for this task.",
           },
           {
             id: "material",
@@ -646,6 +657,7 @@
         const buildPacket = (state) => {
           const fixture = selectedFixture(state);
           const groundingActivity = `urn:activity:ground-${fixture.id}`;
+          const groundingPolicy = "https://example.org/grounding-policy/reference/v1";
           const namedConceptMiss = Boolean(fixture.interpretations?.length) && state.policy.concepts === "named-only";
           const selectedItems = namedConceptMiss ? [] : fixture.items;
           const selectedGaps = namedConceptMiss
@@ -657,7 +669,7 @@
             id: `urn:uuid:prototype-${fixture.id}`,
             grounding: {
               activity: groundingActivity,
-              policy: "https://example.org/grounding-policy/v1",
+              policy: groundingPolicy,
               groundedAt: "2026-08-27T15:00:00Z",
               corpus: ["urn:groundset-corpus:prototype@1"],
             },
@@ -669,11 +681,12 @@
               disagreement: hasUnresolvedConflict ? "unresolved" : fixture.conflicts.length ? "resolved" : "none",
             },
             evidence: selectedItems.map((item, index) => {
+              const similarityScore = Number((0.94 - index * 0.07).toFixed(2));
               if (state.policy.material === "records") {
                 return {
                   id: item.id,
                   canonicalRecords: [item.source.assertion || item.source.artifact, ...(item.source.citations || []).map((citation) => citation.snapshot)].filter(Boolean),
-                  score: 0.94 - index * 0.07,
+                  score: similarityScore,
                 };
               }
 
@@ -689,10 +702,22 @@
                   unknown: item.scope.unknown,
                   assessedBy: groundingActivity,
                 },
+                selection: state.policy.authority === "policy"
+                  ? {
+                      policy: groundingPolicy,
+                      selectedBy: groundingActivity,
+                      reasons: [
+                        { code: "exact-source", explanation: "The material resolves to an immutable source selection." },
+                        { code: "task-bearing", explanation: item.bearing.map((bearing) => bearing.why).join(" ") },
+                        { code: "applicable-scope", explanation: `${item.scope.matches.length} recorded applicability ${item.scope.matches.length === 1 ? "condition matches" : "conditions match"} this task.` },
+                      ],
+                      assessments: [`urn:assertion:reference-assessment:${item.id.slice(3)}`],
+                    }
+                  : { similarityScore },
               };
 
               if (state.policy.bearing === "per-need") evidence.bearing = item.bearing;
-              else evidence.score = 0.94 - index * 0.07;
+              else evidence.score = similarityScore;
               return evidence;
             }),
           };
@@ -701,6 +726,14 @@
             packet.interpretations = fixture.interpretations.map((interpretation) => ({
               ...interpretation,
               generatedBy: groundingActivity,
+              selection: state.policy.authority === "policy"
+                ? {
+                    policy: groundingPolicy,
+                    selectedBy: groundingActivity,
+                    reasons: ["Its recorded indicators match the concrete task cues."],
+                    assessments: ["urn:assertion:reference-assessment:yagni-concept-profile"],
+                  }
+                : { similarityScore: 0.89 },
             }));
           }
 
@@ -769,6 +802,7 @@
           const problems = [];
           if (state.policy.request === "query") problems.push("Evidence cannot name the exact need it addresses.");
           if (state.policy.concepts === "named-only") problems.push("Abstract guidance disappears unless the task already knows what to ask for.");
+          if (state.policy.authority === "similarity") problems.push("Semantic similarity replaces the published policy and attributed source assessments.");
           if (state.policy.material === "records") problems.push("The model receives identifiers and must reconstruct usable material.");
           if (state.policy.bearing === "score") problems.push("Ranking scores replace task-specific explanations.");
           if (state.policy.disagreement === "winner") problems.push("Grounding hides a source position and makes its own conclusion authoritative.");
@@ -818,6 +852,17 @@
             { label: "Require the concept's name", action: { type: "choose", choice: "concepts", value: "named-only" } },
             { label: "Restore situation matching", action: { type: "choose", choice: "concepts", value: "situation" } },
             { label: "Hide the remaining gap", action: { type: "choose", choice: "insufficiency", value: "pad" } },
+          ],
+        },
+        {
+          id: "prior",
+          label: "External weights",
+          copy: "Search similarity produces candidates. The recommended packet records the versioned policy, task-specific reasons, and attributed assessment Assertions that made each item preferable.",
+          steps: [
+            { label: "Open unnamed design smell", action: { type: "fixture", fixture: "yagni" } },
+            { label: "Let similarity decide", action: { type: "choose", choice: "authority", value: "similarity" } },
+            { label: "Restore policy and assessments", action: { type: "choose", choice: "authority", value: "policy" } },
+            { label: "Inspect corrected advisory", action: { type: "fixture", fixture: "version" } },
           ],
         },
         {
@@ -956,7 +1001,11 @@
             line.textContent = `Task cue: ${cue}`;
             cues.appendChild(line);
           });
-          item.append(title, role, why, cues);
+          const selection = document.createElement("p");
+          selection.textContent = interpretation.selection.policy
+            ? `Selected under ${interpretation.selection.policy} using ${interpretation.selection.assessments.length} attributed assessment.`
+            : `Selected by semantic similarity alone: ${interpretation.selection.similarityScore.toFixed(2)}.`;
+          item.append(title, role, why, cues, selection);
           root.appendChild(item);
         });
 
@@ -973,6 +1022,22 @@
             role.className = "badge context";
             role.textContent = evidence.presentationRole;
             item.appendChild(role);
+          }
+
+          if (evidence.selection?.policy) {
+            const selection = document.createElement("p");
+            selection.textContent = `Selected under ${evidence.selection.policy}.`;
+            const reasons = document.createElement("ul");
+            evidence.selection.reasons.forEach((reason) => {
+              const line = document.createElement("li");
+              line.textContent = reason.explanation;
+              reasons.appendChild(line);
+            });
+            item.append(selection, reasons);
+          } else if (typeof evidence.selection?.similarityScore === "number") {
+            const selection = document.createElement("p");
+            selection.textContent = `Selected by semantic similarity alone: ${evidence.selection.similarityScore.toFixed(2)}.`;
+            item.appendChild(selection);
           }
 
           if (evidence.canonicalRecords) {
