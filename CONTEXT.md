@@ -24,6 +24,10 @@ _Avoid_: Artifact, current version
 A person, organization, system, model, or sensor responsible for an Assertion or Activity.
 _Avoid_: User, author
 
+**Agent builder**:
+A person or team that integrates Groundset into a domain-specific AI agent or application. Agent builders are the first v1 product role.
+_Avoid_: User, developer
+
 **Activity**:
 An attributed event that acquires, publishes, parses, renders, transforms, evaluates, or verifies material.
 _Avoid_: Process metadata
@@ -67,6 +71,10 @@ _Avoid_: Context, search result
 **Evidence packet**:
 The small set of Evidence supplied to a model for one task.
 _Avoid_: Retrieval dump, context packet
+
+**Grounding**:
+The task-time selection of applicable, traceable material into an Evidence packet for an Agent.
+_Avoid_: Search, ingestion
 
 **Condition**:
 The evidence access granted to a model during a benchmark run.
