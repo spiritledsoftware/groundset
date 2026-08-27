@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Groundset data-model stress test — throwaway prototype</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        background: #f4f1e8;
+        color: #1c211d;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      button { font: inherit; }
+
+      header {
+        border-bottom: 2px solid #1c211d;
+        padding: 20px clamp(16px, 4vw, 48px);
+      }
+
+      header p { max-width: 78ch; margin-bottom: 0; }
+      .warning { color: #8b2c20; font-weight: 700; text-transform: uppercase; }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+        min-height: calc(100vh - 142px);
+      }
+
+      nav { border-right: 2px solid #1c211d; padding: 16px; }
+      nav button, .mode button {
+        width: 100%;
+        border: 1px solid #1c211d;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        margin-bottom: 8px;
+        padding: 12px;
+        text-align: left;
+      }
+
+      nav button[aria-current="true"], .mode button[aria-pressed="true"] {
+        background: #1c211d;
+        color: #fffdf6;
+      }
+
+      .mode { margin-top: 24px; }
+      .mode h2 { font-size: 12px; text-transform: uppercase; }
+
+      article { min-width: 0; padding: clamp(18px, 4vw, 48px); }
+      article h2 { font-size: clamp(24px, 4vw, 42px); margin: 0 0 8px; }
+      .question { max-width: 78ch; }
+
+      .verdict {
+        align-items: center;
+        border: 2px solid currentColor;
+        display: flex;
+        font-weight: 700;
+        gap: 10px;
+        margin: 24px 0;
+        padding: 12px 16px;
+      }
+
+      .pass { color: #1f6b43; }
+      .partial { color: #9b4b16; }
+
+      .grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      section { border-top: 1px solid #1c211d; min-width: 0; }
+      section h3 { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+      ul { padding-left: 20px; }
+
+      pre {
+        background: #202720;
+        color: #eaf0e5;
+        font-size: 12px;
+        max-height: 460px;
+        overflow: auto;
+        padding: 16px;
+        white-space: pre-wrap;
+      }
+
+      .visual {
+        align-items: center;
+        background: #e4f0ff;
+        border: 1px solid #5285bd;
+        display: flex;
+        height: 180px;
+        justify-content: center;
+        margin-bottom: 16px;
+      }
+
+      .visual div { background: #225ea8; color: white; padding: 12px 18px; }
+
+      footer {
+        background: #d7d2c5;
+        border-top: 2px solid #1c211d;
+        font-size: 12px;
+        padding: 10px clamp(16px, 4vw, 48px);
+      }
+
+      @media (max-width: 780px) {
+        main { display: block; }
+        nav { border-bottom: 2px solid #1c211d; border-right: 0; }
+        .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="warning">Throwaway decision prototype</div>
+      <h1>Can the draft model hold twenty unlike kinds of knowledge?</h1>
+      <p>
+        Switch between the current draft and the smallest proposed changes. The JSON is
+        illustrative: it tests concepts and reusable shapes, not final field names or a wire schema.
+      </p>
+    </header>
+
+    <main>
+      <nav aria-label="Stress-test scenarios">
+        <div id="scenario-buttons"></div>
+        <div class="mode">
+          <h2>Model under test</h2>
+          <button data-mode="draft" aria-pressed="true">Current draft</button>
+          <button data-mode="minimum" aria-pressed="false">Minimum changes</button>
+        </div>
+      </nav>
+
+      <article>
+        <h2 id="title"></h2>
+        <p class="question" id="question"></p>
+        <div class="verdict" id="verdict"></div>
+
+        <div class="grid">
+          <section>
+            <h3>Concrete fixture</h3>
+            <div id="visual"></div>
+            <pre id="fixture"></pre>
+          </section>
+          <section>
+            <h3>What the test exposed</h3>
+            <ul id="findings"></ul>
+            <h3>Minimum response</h3>
+            <ul id="changes"></ul>
+          </section>
+        </div>
+      </article>
+    </main>
+
+    <footer id="state"></footer>
+
+    <script>
+      const ref = (id) => ({ type: "ref", id });
+      const literal = (value, datatype, unit) => ({
+        type: "literal",
+        value,
+        datatype,
+        ...(unit ? { unit } : {}),
+      });
+      const selection = (snapshot, selector) => ({ type: "selection", snapshot, selector });
+
+      const scenarios = [
+        {
+          id: "tailwind",
+          label: "1. Multimodal example",
+          title: "Tailwind centers a div",
+          question: "Can one example preserve source code, symbols, a rendered image, measurements, and the exact environment that connects them?",
+          draftVerdict: "PASS, with wire shapes still undefined",
+          minimumVerdict: "PASS",
+          findings: [
+            "Artifact, Snapshot, Collection, Activity, and Assertion already divide the material correctly.",
+            "The screenshot is a derived Artifact—not metadata on the HTML.",
+            "Selections and typed measurement values are described by the draft but need one reusable JSON shape.",
+            "Rendering inputs, outputs, tools, and parameters need defined Activity roles, not scenario-specific fields.",
+          ],
+          changes: [
+            "No new canonical record kind.",
+            "Formalize three reusable assertion values: record reference, Snapshot selection, and typed literal.",
+            "Formalize generic Activity roles: used, generated, agent, method, and parameter.",
+          ],
+          visual: "<div class='visual'><div>Centered</div></div>",
+          fixture: {
+            collection: {
+              id: "urn:collection:tailwind-center-example",
+              type: "Collection",
+              members: [ref("urn:artifact:center-html"), ref("urn:artifact:center-render")],
+            },
+            htmlSnapshot: {
+              id: "urn:sha256:html-example",
+              type: "Snapshot",
+              artifact: ref("urn:artifact:center-html"),
+              mediaType: "text/html",
+            },
+            renderActivity: {
+              id: "urn:activity:render-example",
+              type: "Activity",
+              used: [ref("urn:sha256:html-example"), ref("urn:entity:tailwind-4.1")],
+              generated: [ref("urn:sha256:render-example")],
+              agents: [ref("urn:agent:chromium-136")],
+              parameters: [
+                { predicate: "urn:web:viewport-width", object: literal(1280, "xsd:integer", "urn:unit:css-px") },
+                { predicate: "urn:web:viewport-height", object: literal(720, "xsd:integer", "urn:unit:css-px") },
+              ],
+            },
+            symbolAssertion: {
+              id: "urn:assertion:uses-justify-center",
+              type: "Assertion",
+              body: {
+                type: "relation",
+                subject: selection("urn:sha256:html-example", { type: "text-quote", exact: "justify-center" }),
+                predicate: "urn:tailwind:uses-class",
+                object: ref("urn:tailwind:justify-center"),
+              },
+              generatedBy: ref("urn:activity:tailwind-symbol-extraction"),
+            },
+            measurementAssertion: {
+              id: "urn:assertion:center-offset-x",
+              type: "Assertion",
+              body: {
+                type: "relation",
+                subject: selection("urn:sha256:render-example", { type: "image-region", x: 540, y: 330, width: 200, height: 60 }),
+                predicate: "urn:layout:center-offset-x",
+                object: literal(0, "xsd:decimal", "urn:unit:css-px"),
+              },
+            },
+          },
+        },
+        {
+          id: "heuristic",
+          label: "2. Abstract heuristic",
+          title: "YAGNI has competing formulations",
+          question: "Can Groundset retrieve an abstract idea through definitions, indicators, exceptions, and examples without pretending one wording is canonical?",
+          draftVerdict: "PASS",
+          minimumVerdict: "PASS",
+          findings: [
+            "A Concept Entity is a meeting point, not the truth-bearing definition.",
+            "Each formulation remains a separately attributed Assertion with its own citation and Scope.",
+            "Relationships may target Assertions, so a vocabulary can distinguish definitions, indicators, and exceptions.",
+            "Retrieval can match indicators and examples even when the query never says “YAGNI.”",
+          ],
+          changes: [
+            "No conceptual model change.",
+            "Keep semantic claim deduplication out of v1.",
+            "Use domain Terms such as hasDefinition and hasIndicator rather than expanding the core vocabulary.",
+          ],
+          fixture: {
+            concept: { id: "urn:entity:yagni", type: "Entity" },
+            categoryAssertion: {
+              id: "urn:assertion:yagni-is-heuristic",
+              type: "Assertion",
+              body: {
+                type: "relation",
+                subject: ref("urn:entity:yagni"),
+                predicate: "groundset:instanceOf",
+                object: ref("urn:decision:Heuristic"),
+              },
+              attributedTo: ref("urn:agent:curator-a"),
+            },
+            definitionA: {
+              id: "urn:assertion:yagni-definition-a",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Do not implement a capability until a concrete requirement needs it." },
+              attributedTo: ref("urn:agent:source-author-a"),
+              citations: [selection("urn:sha256:source-a", { type: "text-quote", exact: "You aren't gonna need it." })],
+            },
+            definitionLink: {
+              id: "urn:assertion:yagni-has-definition-a",
+              type: "Assertion",
+              body: {
+                type: "relation",
+                subject: ref("urn:entity:yagni"),
+                predicate: "urn:decision:has-definition",
+                object: ref("urn:assertion:yagni-definition-a"),
+              },
+              attributedTo: ref("urn:agent:curator-a"),
+            },
+            competingDefinition: {
+              id: "urn:assertion:yagni-definition-b",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Delay irreversible design commitments until evidence justifies them." },
+              attributedTo: ref("urn:agent:source-author-b"),
+              citations: [selection("urn:sha256:source-b", { type: "heading", exact: "YAGNI and reversibility" })],
+            },
+          },
+        },
+        {
+          id: "dispute",
+          label: "3. Scoped dispute",
+          title: "A recommendation changes over time",
+          question: "Can two authorities disagree about one recommendation while keeping publication time, applicable time, and later supersession distinct?",
+          draftVerdict: "PARTIAL: Scope has no data structure",
+          minimumVerdict: "PASS",
+          findings: [
+            "Separate Assertions preserve disagreement without a truth flag.",
+            "supports, contradicts, and supersedes can connect Assertions with attributed relation Assertions.",
+            "Publication and acquisition timestamps belong to source Snapshots and Activities; they do not say when a Claim applies.",
+            "The draft names Scope but cannot yet encode even a date-bounded applicability constraint without inventing fields.",
+          ],
+          changes: [
+            "Define Scope as a list of predicate/value constraints attached to an Assertion.",
+            "Ship only a tiny core of scope predicates, including validFrom and validUntil; domains add namespaced predicates.",
+            "Reuse typed literals inside constraints; do not design a universal rule language.",
+          ],
+          fixture: {
+            earlierRecommendation: {
+              id: "urn:assertion:mask-guidance-early",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Routine masking is not recommended in this setting." },
+              attributedTo: ref("urn:agent:authority-a"),
+              scope: [
+                { predicate: "groundset:validFrom", object: literal("2020-02-01", "xsd:date") },
+                { predicate: "groundset:validUntil", object: literal("2020-04-02", "xsd:date") },
+                { predicate: "urn:health:population", object: ref("urn:population:general-public") },
+              ],
+              citations: [selection("urn:sha256:guidance-early", { type: "page", number: 3 })],
+            },
+            contemporaneousDispute: {
+              id: "urn:assertion:mask-guidance-dispute",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Routine masking is recommended in this setting." },
+              attributedTo: ref("urn:agent:authority-b"),
+              scope: [
+                { predicate: "groundset:validFrom", object: literal("2020-03-20", "xsd:date") },
+                { predicate: "urn:health:population", object: ref("urn:population:general-public") },
+              ],
+              citations: [selection("urn:sha256:guidance-dispute", { type: "text-quote", exact: "Wear a mask." })],
+            },
+            contradiction: {
+              id: "urn:assertion:guidance-b-contradicts-a",
+              type: "Assertion",
+              body: {
+                type: "relation",
+                subject: ref("urn:assertion:mask-guidance-dispute"),
+                predicate: "groundset:contradicts",
+                object: ref("urn:assertion:mask-guidance-early"),
+              },
+              attributedTo: ref("urn:agent:reviewer-c"),
+            },
+          },
+        },
+        {
+          id: "private",
+          label: "4. Restricted source",
+          title: "A private report cannot be redistributed",
+          question: "Can Groundset use restricted material without turning every record and relationship into an authorization boundary?",
+          draftVerdict: "PASS only inside a protected corpus boundary",
+          minimumVerdict: "PASS: protection stays outside the record format",
+          findings: [
+            "Canonical JSON cannot protect itself once copied. Per-record controls would create recursive policy and taint-propagation problems.",
+            "The source Snapshot, derived Assertions, search indexes, and resulting Evidence packets must remain together inside one protected corpus boundary.",
+            "The public hosted corpus contains no record, pointer, excerpt, or derived assertion from the private source.",
+            "License and rights metadata informs an explicit export decision; it is not an access-control mechanism.",
+          ],
+          changes: [
+            "Add no access-control or policy fields to canonical records.",
+            "Treat a corpus deployment—not Collection membership—as the minimum security boundary.",
+            "Allow material to cross that boundary only through an explicit publish/export operation checked against source rights.",
+            "Leave tenant isolation and export enforcement to the later local/hosted security decision.",
+          ],
+          fixture: {
+            privateCorpusBoundary: {
+              accessEnforcedBy: "deployment",
+              contains: [
+                ref("urn:artifact:private-market-report"),
+                ref("urn:sha256:private-report"),
+                ref("urn:assertion:private-market-size"),
+              ],
+            },
+            privateCanonicalRecords: {
+              artifact: {
+                id: "urn:artifact:private-market-report",
+                type: "Artifact",
+              },
+              snapshot: {
+                id: "urn:sha256:private-report",
+                type: "Snapshot",
+                artifact: ref("urn:artifact:private-market-report"),
+                digest: { algorithm: "sha-256", value: "private-report" },
+                mediaType: "application/pdf",
+                license: ref("urn:rights:no-redistribution"),
+                blobLocation: "private-store://objects/private-report",
+              },
+              derivedAssertion: {
+                id: "urn:assertion:private-market-size",
+                type: "Assertion",
+                body: { type: "claim", language: "en", text: "The private report estimates the market at the cited value." },
+                citations: [selection("urn:sha256:private-report", { type: "page", number: 17 })],
+                generatedBy: ref("urn:activity:local-extraction"),
+              },
+            },
+            publicCorpusBoundary: {
+              contains: [],
+              rejectedExport: ref("urn:activity:export-denied-by-source-rights"),
+            },
+          },
+        },
+        {
+          id: "retraction",
+          label: "5. Retracted science",
+          title: "A paper is corrected, then retracted",
+          question: "Can Groundset retain the original claim, correction, and retraction without deleting history or treating the latest document as timeless truth?",
+          draftVerdict: "PASS",
+          minimumVerdict: "PASS",
+          findings: [
+            "Every publication state remains an immutable Snapshot.",
+            "The paper’s Claim, the correction, and the retraction are separate attributed Assertions.",
+            "A retraction changes the assessment of an earlier Assertion; it does not erase the source or mutate a truth flag.",
+            "Exact cited passages remain recoverable after the publication changes.",
+          ],
+          changes: [
+            "No new record kind.",
+            "Use domain predicates such as corrects and retracts alongside the core supersedes relation.",
+            "Keep retraction status out of Snapshot identity and search-projection scores.",
+          ],
+          fixture: {
+            originalClaim: {
+              id: "urn:assertion:paper-result-v1",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Treatment X reduced mortality in the studied cohort." },
+              attributedTo: ref("urn:agent:paper-authors"),
+              citations: [selection("urn:sha256:paper-v1", { type: "page", number: 8 })],
+            },
+            correction: {
+              id: "urn:assertion:paper-correction",
+              type: "Assertion",
+              body: {
+                type: "relation",
+                subject: ref("urn:artifact:correction-notice"),
+                predicate: "urn:publishing:corrects",
+                object: ref("urn:assertion:paper-result-v1"),
+              },
+              attributedTo: ref("urn:agent:journal"),
+            },
+            retraction: {
+              id: "urn:assertion:paper-retraction",
+              type: "Assertion",
+              body: {
+                type: "relation",
+                subject: ref("urn:artifact:retraction-notice"),
+                predicate: "urn:publishing:retracts",
+                object: ref("urn:assertion:paper-result-v1"),
+              },
+              attributedTo: ref("urn:agent:journal"),
+              citations: [selection("urn:sha256:retraction-notice", { type: "text-quote", exact: "The article is retracted." })],
+            },
+          },
+        },
+        {
+          id: "law",
+          label: "6. Amended law",
+          title: "A statutory duty changes by jurisdiction",
+          question: "Can the same section impose different duties before and after an amendment, with applicability depending on jurisdiction and effective date?",
+          draftVerdict: "PARTIAL: applicability is prose-only",
+          minimumVerdict: "PASS",
+          findings: [
+            "The enacted text and amending act are separate Artifacts with immutable Snapshots.",
+            "An obligation is an attributed legal interpretation, not a property copied onto the statute.",
+            "Publication date, enactment date, and effective date are different facts.",
+            "The current draft needs structured Scope constraints to avoid jurisdiction and time fields invented per legal source.",
+          ],
+          changes: [
+            "Reuse namespaced Scope predicates and typed values.",
+            "Represent legal interpretations as Assertions with exact section selectors.",
+            "Use supersedes for the interpretation change while preserving both scoped Assertions.",
+          ],
+          fixture: {
+            earlierDuty: {
+              id: "urn:assertion:filing-duty-2024",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Qualifying organizations must file within 30 days." },
+              attributedTo: ref("urn:agent:legal-publisher"),
+              scope: [
+                { predicate: "urn:law:jurisdiction", object: ref("urn:place:example-state") },
+                { predicate: "groundset:validUntil", object: literal("2025-06-30", "xsd:date") },
+              ],
+              citations: [selection("urn:sha256:statute-2024", { type: "section", exact: "§ 12(3)" })],
+            },
+            amendedDuty: {
+              id: "urn:assertion:filing-duty-2025",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Qualifying organizations must file within 14 days." },
+              attributedTo: ref("urn:agent:legal-publisher"),
+              scope: [
+                { predicate: "urn:law:jurisdiction", object: ref("urn:place:example-state") },
+                { predicate: "groundset:validFrom", object: literal("2025-07-01", "xsd:date") },
+              ],
+              citations: [selection("urn:sha256:amending-act", { type: "section", exact: "§ 4" })],
+            },
+            supersession: {
+              id: "urn:assertion:duty-supersession",
+              type: "Assertion",
+              body: {
+                type: "relation",
+                subject: ref("urn:assertion:filing-duty-2025"),
+                predicate: "groundset:supersedes",
+                object: ref("urn:assertion:filing-duty-2024"),
+              },
+              attributedTo: ref("urn:agent:legal-publisher"),
+            },
+          },
+        },
+        {
+          id: "sensor",
+          label: "7. Calibrated sensor",
+          title: "A sensor reading depends on calibration",
+          question: "Can Groundset preserve a high-volume observation stream while tracing one reading to its sensor, calibration, units, location, and uncertainty?",
+          draftVerdict: "PARTIAL: value and bulk-data patterns are implicit",
+          minimumVerdict: "PASS",
+          findings: [
+            "The time series belongs in a Dataset Artifact; millions of samples should not become millions of Assertion records by default.",
+            "A row selector can cite one observation without changing the durable source representation.",
+            "Calibration is an Activity whose tool, reference standard, inputs, and outputs remain traceable.",
+            "Units and uncertainty require reusable typed literals, not sensor-specific fields.",
+          ],
+          changes: [
+            "Formalize typed literals and row selectors.",
+            "State that bulk observations remain Artifact content unless a task promotes selected values to Assertions.",
+            "Use domain predicates for uncertainty, location, and observed property.",
+          ],
+          fixture: {
+            streamSnapshot: {
+              id: "urn:sha256:temperature-stream",
+              type: "Snapshot",
+              artifact: ref("urn:artifact:temperature-stream"),
+              mediaType: "application/x-parquet",
+            },
+            calibration: {
+              id: "urn:activity:sensor-calibration",
+              type: "Activity",
+              used: [ref("urn:entity:sensor-7"), ref("urn:artifact:reference-standard")],
+              generated: [ref("urn:artifact:calibration-certificate")],
+              agents: [ref("urn:agent:lab-a")],
+            },
+            selectedObservation: {
+              id: "urn:assertion:temperature-row-8841",
+              type: "Assertion",
+              body: {
+                type: "relation",
+                subject: selection("urn:sha256:temperature-stream", { type: "table-row", key: "8841" }),
+                predicate: "urn:measurement:temperature",
+                object: literal(21.4, "xsd:decimal", "urn:unit:degree-celsius"),
+              },
+              generatedBy: ref("urn:activity:sensor-7-observation"),
+            },
+          },
+        },
+        {
+          id: "oral-history",
+          label: "8. Oral history",
+          title: "A recording is transcribed and translated",
+          question: "Can Groundset distinguish what a speaker said from what a transcriber heard and what a translator rendered in another language?",
+          draftVerdict: "PASS, if attribution roles are explicit",
+          minimumVerdict: "PASS",
+          findings: [
+            "Audio, transcript, and translation are separate Artifacts connected by transcription and translation Activities.",
+            "The speaker is the Agent attributed with the quoted Claim; the transcriber and translator are Agents responsible for derivation Activities.",
+            "A timestamp selector grounds the transcript in audio; a text selector grounds the translation in the transcript.",
+            "Consent restrictions use the protected corpus boundary rather than per-record ACL propagation.",
+          ],
+          changes: [
+            "Formalize distinct attributedTo and generatedBy roles.",
+            "Keep language on claim bodies and Snapshot media metadata.",
+            "Use ordinary derivation provenance; do not create Transcript or Translation record kinds.",
+          ],
+          fixture: {
+            audio: { id: "urn:sha256:oral-history-audio", type: "Snapshot", artifact: ref("urn:artifact:oral-history-audio"), mediaType: "audio/flac" },
+            transcription: {
+              id: "urn:activity:human-transcription",
+              type: "Activity",
+              used: [ref("urn:sha256:oral-history-audio")],
+              generated: [ref("urn:sha256:oral-history-transcript")],
+              agents: [ref("urn:agent:transcriber")],
+            },
+            translatedClaim: {
+              id: "urn:assertion:translated-quote",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "We crossed the river before dawn." },
+              attributedTo: ref("urn:agent:interview-speaker"),
+              generatedBy: ref("urn:activity:human-translation"),
+              citations: [selection("urn:sha256:oral-history-audio", { type: "time-range", start: 312.4, end: 318.9 })],
+            },
+          },
+        },
+        {
+          id: "map",
+          label: "9. Historical map",
+          title: "A border moves between map editions",
+          question: "Can a polygon be cited as drawn while Groundset records that the represented boundary applies only to a particular place, authority, and period?",
+          draftVerdict: "PARTIAL: geographic selection and Scope need profiles",
+          minimumVerdict: "PASS",
+          findings: [
+            "The scanned map and extracted vector geometry are separate derived Artifacts.",
+            "A map depicts an authority’s boundary claim; the pixels are not themselves the boundary’s truth.",
+            "Geometry selectors must be extensible rather than part of one closed selector enum.",
+            "Temporal and jurisdictional Scope distinguishes historical applicability from capture date.",
+          ],
+          changes: [
+            "Allow namespaced selector profiles such as GeoJSON feature and image region.",
+            "Reuse Scope constraints for represented date and asserting authority.",
+            "Preserve map editions as Snapshots and vectorization as an Activity.",
+          ],
+          fixture: {
+            scannedMap: { id: "urn:sha256:map-1912", type: "Snapshot", artifact: ref("urn:artifact:border-map"), mediaType: "image/tiff" },
+            vectorization: {
+              id: "urn:activity:map-vectorization",
+              type: "Activity",
+              used: [ref("urn:sha256:map-1912")],
+              generated: [ref("urn:sha256:border-geometry-1912")],
+              agents: [ref("urn:agent:cartographer-reviewer")],
+            },
+            boundaryClaim: {
+              id: "urn:assertion:border-1912",
+              type: "Assertion",
+              body: {
+                type: "relation",
+                subject: ref("urn:entity:territory-a"),
+                predicate: "urn:geo:has-boundary",
+                object: selection("urn:sha256:border-geometry-1912", { type: "urn:geo:feature", id: "border-a" }),
+              },
+              scope: [{ predicate: "urn:geo:represented-at", object: literal("1912", "xsd:gYear") }],
+              citations: [selection("urn:sha256:map-1912", { type: "image-region", x: 740, y: 210, width: 360, height: 900 })],
+            },
+          },
+        },
+        {
+          id: "recipe",
+          label: "10. Adaptive procedure",
+          title: "A recipe changes at high altitude",
+          question: "Can a procedure retain ordered source instructions while separately representing substitutions, conditions, rationale, and observed outcomes?",
+          draftVerdict: "PASS",
+          minimumVerdict: "PASS",
+          findings: [
+            "The recipe remains an Artifact; Groundset does not need to normalize every instruction into a universal procedure schema.",
+            "A Procedure Concept can connect editions, substitutions, examples, and failure reports.",
+            "Conditional advice is a scoped Claim with a citation, not a mutation of the source recipe.",
+            "A cooked result can be an Artifact produced by an Activity with measured parameters.",
+          ],
+          changes: [
+            "No new record kind or universal workflow language.",
+            "Use selectors for source steps and domain vocabulary for substitutions and outcomes.",
+            "Use Scope for conditions such as elevation and equipment.",
+          ],
+          fixture: {
+            recipe: { id: "urn:sha256:cake-recipe", type: "Snapshot", artifact: ref("urn:artifact:cake-recipe"), mediaType: "text/html" },
+            adjustment: {
+              id: "urn:assertion:high-altitude-adjustment",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Reduce leavening by one quarter at this elevation." },
+              scope: [{ predicate: "urn:cooking:min-elevation", object: literal(1500, "xsd:decimal", "urn:unit:metre") }],
+              citations: [selection("urn:sha256:baking-guide", { type: "heading", exact: "High-altitude cakes" })],
+            },
+            bakeActivity: {
+              id: "urn:activity:test-bake-41",
+              type: "Activity",
+              used: [ref("urn:sha256:cake-recipe"), ref("urn:assertion:high-altitude-adjustment")],
+              generated: [ref("urn:artifact:test-cake-photo"), ref("urn:artifact:test-cake-measurements")],
+            },
+          },
+        },
+        {
+          id: "theorem",
+          label: "11. Formal theorem",
+          title: "A theorem holds under named axioms",
+          question: "Can Groundset connect a mathematical proposition, human proof, machine-checkable proof, axiom system, and verifier result without flattening them into prose?",
+          draftVerdict: "PASS, with reusable Scope values",
+          minimumVerdict: "PASS",
+          findings: [
+            "The theorem is a Claim; proof files and papers are Artifacts.",
+            "A verifier run is an Activity whose exact toolchain, inputs, and outputs are preserved.",
+            "The axiom system and definitions belong in Scope or explicit dependency relationships.",
+            "Verification supports the theorem Assertion but does not create a universal truth flag.",
+          ],
+          changes: [
+            "No Theorem or Proof core record kinds.",
+            "Reuse supports, dependsOn domain relations, Activities, and version Scope.",
+            "Keep formal-language syntax inside Artifacts rather than the canonical envelope.",
+          ],
+          fixture: {
+            theorem: {
+              id: "urn:assertion:theorem-t",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Every object satisfying P also satisfies Q." },
+              scope: [{ predicate: "urn:math:axiom-system", object: ref("urn:entity:axioms-a") }],
+              citations: [selection("urn:sha256:paper-proof", { type: "section", exact: "Theorem 4" })],
+            },
+            verifierRun: {
+              id: "urn:activity:proof-check",
+              type: "Activity",
+              used: [ref("urn:sha256:formal-proof"), ref("urn:entity:lean-4.19")],
+              generated: [ref("urn:artifact:proof-check-log")],
+              agents: [ref("urn:agent:lean-verifier")],
+            },
+            support: {
+              id: "urn:assertion:formal-proof-supports-t",
+              type: "Assertion",
+              body: { type: "relation", subject: ref("urn:artifact:proof-check-log"), predicate: "groundset:supports", object: ref("urn:assertion:theorem-t") },
+              generatedBy: ref("urn:activity:proof-check"),
+            },
+          },
+        },
+        {
+          id: "clinical",
+          label: "12. Clinical guidance",
+          title: "A dose depends on patient conditions",
+          question: "Can Groundset retrieve a recommendation only for the correct population, indication, kidney function, age range, formulation, and guideline version?",
+          draftVerdict: "PARTIAL: Scope cannot yet be queried consistently",
+          minimumVerdict: "PASS",
+          findings: [
+            "The recommendation is a scoped Claim, not an unconditional drug fact.",
+            "Contraindications and exceptions remain separately attributed Assertions.",
+            "The official guideline Snapshot and exact table row are durable citations.",
+            "Namespaced Scope predicates avoid hard-coding medical fields into Groundset core.",
+          ],
+          changes: [
+            "Require Scope predicates to be defined Terms with typed values.",
+            "Let domain profiles define population, indication, and laboratory-value semantics.",
+            "Do not calculate a global applicability or safety score in the canonical model.",
+          ],
+          fixture: {
+            doseRecommendation: {
+              id: "urn:assertion:dose-recommendation",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Use 5 mg once daily." },
+              attributedTo: ref("urn:agent:guideline-panel"),
+              scope: [
+                { predicate: "urn:clinical:indication", object: ref("urn:condition:example") },
+                { predicate: "urn:clinical:min-age", object: literal(18, "xsd:integer", "urn:unit:year") },
+                { predicate: "urn:clinical:min-egfr", object: literal(30, "xsd:decimal", "urn:unit:ml-per-min-1.73m2") },
+              ],
+              citations: [selection("urn:sha256:clinical-guideline", { type: "table-cell", row: "renal-30-plus", column: "dose" })],
+            },
+            exception: {
+              id: "urn:assertion:dose-pregnancy-exception",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Do not use during pregnancy." },
+              attributedTo: ref("urn:agent:guideline-panel"),
+              citations: [selection("urn:sha256:clinical-guideline", { type: "section", exact: "Contraindications" })],
+            },
+          },
+        },
+        {
+          id: "photo",
+          label: "13. Edited photograph",
+          title: "A photograph has an edit history",
+          question: "Can Groundset preserve original pixels, edits, capture metadata, and competing authenticity assessments without declaring the image simply real or fake?",
+          draftVerdict: "PASS",
+          minimumVerdict: "PASS",
+          findings: [
+            "Original and edited files are separate Snapshot-bearing Artifacts.",
+            "Editing and export are Activities with exact inputs, tools, parameters, and outputs.",
+            "C2PA metadata can be adapted as provenance and Assertions rather than replacing Groundset records.",
+            "Authenticity assessments name their assessor, method, Scope, and time.",
+          ],
+          changes: [
+            "No authenticity flag.",
+            "Keep byte-level provenance in Snapshots and transformation lineage in Activities.",
+            "Use optional C2PA adapters, not a mandatory media representation.",
+          ],
+          fixture: {
+            original: { id: "urn:sha256:camera-original", type: "Snapshot", artifact: ref("urn:artifact:camera-original"), mediaType: "image/dng" },
+            edit: {
+              id: "urn:activity:photo-edit",
+              type: "Activity",
+              used: [ref("urn:sha256:camera-original"), ref("urn:entity:editor-8.2")],
+              generated: [ref("urn:sha256:published-photo")],
+              agents: [ref("urn:agent:photo-editor")],
+            },
+            assessment: {
+              id: "urn:assertion:photo-content-assessment",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "The edit changed exposure but did not add or remove depicted people." },
+              attributedTo: ref("urn:agent:forensics-lab"),
+              citations: [selection("urn:sha256:forensics-report", { type: "page", number: 4 })],
+            },
+          },
+        },
+        {
+          id: "aggregate",
+          label: "14. Private aggregate",
+          title: "A publishable KPI comes from private rows",
+          question: "Can a company ground an aggregate result in private source data while exposing only an approved statistic across the corpus boundary?",
+          draftVerdict: "PASS only with an explicit boundary crossing",
+          minimumVerdict: "PASS",
+          findings: [
+            "Raw rows, transformation code, intermediate data, and private Evidence packets remain inside the private corpus boundary.",
+            "Aggregation is an Activity with reproducible inputs and a generated result Artifact.",
+            "Publication creates an explicitly reviewed public Artifact or Assertion; it does not expose private citations automatically.",
+            "The public result may state its derivation at a safe level without publishing restricted selectors.",
+          ],
+          changes: [
+            "Use the same corpus-boundary rule as other restricted material.",
+            "Make export/publication an explicit Activity rather than copying records between stores.",
+            "Leave disclosure-control policy to the security boundary, not the canonical graph.",
+          ],
+          fixture: {
+            privateAggregation: {
+              id: "urn:activity:quarterly-retention-aggregation",
+              type: "Activity",
+              used: [ref("urn:sha256:private-customer-rows"), ref("urn:sha256:retention-query")],
+              generated: [ref("urn:artifact:private-retention-result")],
+              agents: [ref("urn:agent:analytics-runner")],
+            },
+            publication: {
+              id: "urn:activity:approved-kpi-publication",
+              type: "Activity",
+              used: [ref("urn:artifact:private-retention-result"), ref("urn:artifact:disclosure-review")],
+              generated: [ref("urn:artifact:public-retention-kpi")],
+              agents: [ref("urn:agent:authorized-publisher")],
+            },
+            publicClaim: {
+              id: "urn:assertion:published-retention-kpi",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "Quarterly customer retention was 91%." },
+              attributedTo: ref("urn:agent:company"),
+              citations: [selection("urn:sha256:public-kpi-report", { type: "table-cell", row: "Q2", column: "retention" })],
+            },
+          },
+        },
+        {
+          id: "testimony",
+          label: "15. Conflicting testimony",
+          title: "Two witnesses remember an event differently",
+          question: "Can Groundset preserve incompatible accounts, anonymous attribution, interviewer influence, and later corroboration without merging them into one event narrative?",
+          draftVerdict: "PASS",
+          minimumVerdict: "PASS",
+          findings: [
+            "Each account is an attributed Assertion grounded in its own recording or statement Snapshot.",
+            "An anonymous witness can still have a stable pseudonymous Agent identity inside the applicable corpus boundary.",
+            "The interviewer and transcription system belong to Activities, not the witness attribution.",
+            "Contradiction and corroboration are additional attributed Assertions, not automatic inference.",
+          ],
+          changes: [
+            "No new record kind.",
+            "Keep source identity, recorder responsibility, and claim attribution as separate roles.",
+            "Represent a historical event as an Entity with domain-role Assertions when needed.",
+          ],
+          fixture: {
+            accountA: {
+              id: "urn:assertion:witness-a-account",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "The vehicle entered from the north." },
+              attributedTo: ref("urn:agent:witness-a-pseudonym"),
+              citations: [selection("urn:sha256:interview-a", { type: "time-range", start: 84, end: 91 })],
+            },
+            accountB: {
+              id: "urn:assertion:witness-b-account",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "The vehicle entered from the east." },
+              attributedTo: ref("urn:agent:witness-b"),
+              citations: [selection("urn:sha256:statement-b", { type: "text-quote", exact: "from the east" })],
+            },
+            reviewerAssessment: {
+              id: "urn:assertion:accounts-conflict",
+              type: "Assertion",
+              body: { type: "relation", subject: ref("urn:assertion:witness-a-account"), predicate: "groundset:contradicts", object: ref("urn:assertion:witness-b-account") },
+              attributedTo: ref("urn:agent:case-reviewer"),
+            },
+          },
+        },
+        {
+          id: "taxonomy",
+          label: "16. Biological taxonomy",
+          title: "A species is split and renamed",
+          question: "Can changing scientific names, specimen evidence, competing taxonomies, and historical literature remain discoverable without collapsing distinct taxa?",
+          draftVerdict: "PASS",
+          minimumVerdict: "PASS",
+          findings: [
+            "The organismal taxon and each published name are distinct Entities or Terms connected by attributed Assertions.",
+            "A taxonomic treatment is an Artifact; its accepted-name decision is not a global identity mutation.",
+            "Different authorities can publish competing classifications at the same time.",
+            "Historical names remain retrieval aliases through attributed exactMatch or closeMatch relations.",
+          ],
+          changes: [
+            "No universal sameAs merge operation.",
+            "Use domain vocabulary for acceptedName, synonymOf, basedOnSpecimen, and taxonomicConcept.",
+            "Preserve authority and date Scope on every classification Assertion.",
+          ],
+          fixture: {
+            treatmentA: {
+              id: "urn:assertion:taxon-treatment-a",
+              type: "Assertion",
+              body: { type: "relation", subject: ref("urn:entity:taxon-concept-a"), predicate: "urn:taxonomy:accepted-name", object: ref("urn:term:species-name-a") },
+              attributedTo: ref("urn:agent:taxonomy-authority-a"),
+              citations: [selection("urn:sha256:taxonomic-treatment-a", { type: "page", number: 42 })],
+            },
+            treatmentB: {
+              id: "urn:assertion:taxon-treatment-b",
+              type: "Assertion",
+              body: { type: "relation", subject: ref("urn:entity:taxon-concept-a"), predicate: "urn:taxonomy:split-into", object: ref("urn:entity:taxon-concept-b") },
+              attributedTo: ref("urn:agent:taxonomy-authority-b"),
+              citations: [selection("urn:sha256:taxonomic-treatment-b", { type: "section", exact: "Revision" })],
+            },
+            specimenLink: {
+              id: "urn:assertion:taxon-type-specimen",
+              type: "Assertion",
+              body: { type: "relation", subject: ref("urn:entity:taxon-concept-b"), predicate: "urn:taxonomy:based-on-specimen", object: ref("urn:entity:specimen-2041") },
+              attributedTo: ref("urn:agent:museum-curator"),
+            },
+          },
+        },
+        {
+          id: "vulnerability",
+          label: "17. Security advisory",
+          title: "A vulnerability affects only certain versions",
+          question: "Can Groundset handle embargoed disclosure, affected version ranges, conflicting vendor assessments, patches, and later advisory revisions?",
+          draftVerdict: "PARTIAL: version applicability is not structured",
+          minimumVerdict: "PASS",
+          findings: [
+            "The embargoed advisory and derived analysis remain in a private corpus boundary until coordinated publication.",
+            "The vulnerability is an Entity; affected-version statements are scoped Assertions.",
+            "Vendor and researcher assessments can conflict without one global severity or truth field.",
+            "Patch commits and public advisories are Artifacts connected through Activities and semantic relations.",
+          ],
+          changes: [
+            "Use a domain Scope Term whose typed value is a package ecosystem and version range.",
+            "Reuse the explicit publication boundary for embargoed knowledge.",
+            "Keep calculated severity and exploitability in attributed assessments or search projections.",
+          ],
+          fixture: {
+            affectedRange: {
+              id: "urn:assertion:cve-affected-range",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "The package is vulnerable when processing a crafted archive." },
+              attributedTo: ref("urn:agent:security-researcher"),
+              scope: [{ predicate: "urn:software:package-version", object: literal(">=2.1.0 <2.4.3", "urn:datatype:semver-range") }],
+              citations: [selection("urn:sha256:public-advisory", { type: "heading", exact: "Affected versions" })],
+            },
+            patchRelation: {
+              id: "urn:assertion:commit-fixes-cve",
+              type: "Assertion",
+              body: { type: "relation", subject: ref("urn:artifact:patch-commit"), predicate: "urn:security:fixes", object: ref("urn:entity:cve-example") },
+              attributedTo: ref("urn:agent:vendor"),
+            },
+            revisedAssessment: {
+              id: "urn:assertion:vendor-scope-revision",
+              type: "Assertion",
+              body: { type: "relation", subject: ref("urn:assertion:vendor-assessment-v2"), predicate: "groundset:supersedes", object: ref("urn:assertion:vendor-assessment-v1") },
+              attributedTo: ref("urn:agent:vendor"),
+            },
+          },
+        },
+        {
+          id: "machine-learning",
+          label: "18. ML benchmark",
+          title: "A model score depends on data and protocol",
+          question: "Can Groundset trace a reported score through model weights, dataset edition, preprocessing, prompt template, evaluator, hardware, license, and contamination claim?",
+          draftVerdict: "PASS",
+          minimumVerdict: "PASS",
+          findings: [
+            "Weights, datasets, prompts, logs, and reports are Artifacts with immutable Snapshots.",
+            "Training and evaluation are Activities with exact inputs, tools, configuration, and outputs.",
+            "A benchmark score is a typed measurement Assertion scoped to a protocol—not a permanent Model property.",
+            "Contamination is a separately attributed Claim with its own method and evidence.",
+          ],
+          changes: [
+            "No Model, Dataset, or Benchmark core record kinds; semantic Categories handle them.",
+            "Use Activities for reproducibility and typed literals for metrics.",
+            "Use SPDX or CycloneDX-style adapters where useful without changing the canonical model.",
+          ],
+          fixture: {
+            evaluation: {
+              id: "urn:activity:model-evaluation-run",
+              type: "Activity",
+              used: [ref("urn:sha256:model-weights"), ref("urn:sha256:benchmark-v3"), ref("urn:sha256:evaluator-code"), ref("urn:sha256:prompt-template")],
+              generated: [ref("urn:sha256:evaluation-log")],
+              agents: [ref("urn:agent:evaluation-runner")],
+            },
+            score: {
+              id: "urn:assertion:model-score",
+              type: "Assertion",
+              body: { type: "relation", subject: ref("urn:sha256:model-weights"), predicate: "urn:benchmark:accuracy", object: literal(0.734, "xsd:decimal") },
+              scope: [{ predicate: "urn:benchmark:protocol", object: ref("urn:sha256:benchmark-protocol-v3") }],
+              generatedBy: ref("urn:activity:model-evaluation-run"),
+              citations: [selection("urn:sha256:evaluation-log", { type: "json-pointer", pointer: "/summary/accuracy" })],
+            },
+            contaminationClaim: {
+              id: "urn:assertion:benchmark-contamination",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "A subset of evaluation items likely appeared in training data." },
+              attributedTo: ref("urn:agent:independent-auditor"),
+              citations: [selection("urn:sha256:contamination-study", { type: "section", exact: "Matched samples" })],
+            },
+          },
+        },
+        {
+          id: "absence",
+          label: "19. Negative observation",
+          title: "A survey detects no frogs",
+          question: "Can Groundset distinguish “none were detected under this method” from the much stronger claim “none exist here”?",
+          draftVerdict: "PASS, if method and Scope remain attached",
+          minimumVerdict: "PASS",
+          findings: [
+            "Absence is a Claim grounded in a bounded sampling Activity, not a missing record or closed-world inference.",
+            "Recordings, transects, weather, detector sensitivity, and sampling windows are Artifacts or Activity parameters.",
+            "A later detection can contradict a broad interpretation without invalidating the historical observation.",
+            "The method’s detection limit and surveyed area belong in Scope or cited procedure material.",
+          ],
+          changes: [
+            "No negative-fact record kind.",
+            "Require provenance and Scope for absence Claims used as Evidence.",
+            "Never infer nonexistence merely because retrieval returns no matching Assertion.",
+          ],
+          fixture: {
+            survey: {
+              id: "urn:activity:frog-audio-survey",
+              type: "Activity",
+              used: [ref("urn:artifact:survey-protocol"), ref("urn:entity:detector-12")],
+              generated: [ref("urn:sha256:survey-recordings"), ref("urn:sha256:detection-log")],
+              agents: [ref("urn:agent:field-team")],
+            },
+            absenceClaim: {
+              id: "urn:assertion:no-frogs-detected",
+              type: "Assertion",
+              body: { type: "claim", language: "en", text: "No target frog calls were detected during the survey." },
+              attributedTo: ref("urn:agent:field-team"),
+              generatedBy: ref("urn:activity:frog-audio-survey"),
+              scope: [
+                { predicate: "urn:ecology:survey-area", object: ref("urn:place:wetland-a") },
+                { predicate: "groundset:validFrom", object: literal("2026-04-10T20:00:00Z", "xsd:dateTime") },
+                { predicate: "groundset:validUntil", object: literal("2026-04-11T04:00:00Z", "xsd:dateTime") },
+              ],
+              citations: [selection("urn:sha256:detection-log", { type: "json-pointer", pointer: "/detections/target-frog" })],
+            },
+          },
+        },
+        {
+          id: "forecast",
+          label: "20. Forecast and outcome",
+          title: "A forecast expires and is later evaluated",
+          question: "Can Groundset distinguish issue time, target time, location, probability, forecast revision, observed outcome, and retrospective accuracy?",
+          draftVerdict: "PARTIAL: temporal roles are not structured",
+          minimumVerdict: "PASS",
+          findings: [
+            "A forecast is a scoped probabilistic Claim, not a fact whose truth expires.",
+            "Issue time belongs to publication provenance; target time and geography belong to Scope.",
+            "A newer run supersedes the operational use of an older forecast but does not erase it.",
+            "The later observation and accuracy assessment are separately attributed Assertions generated by Activities.",
+          ],
+          changes: [
+            "Use explicit Scope predicates for target interval and geography.",
+            "Represent probability as a typed value or domain relation, not a universal confidence field.",
+            "Keep prediction, observation, and evaluation as distinct Assertions.",
+          ],
+          fixture: {
+            forecastClaim: {
+              id: "urn:assertion:rain-forecast-run-a",
+              type: "Assertion",
+              body: { type: "relation", subject: ref("urn:place:city-a"), predicate: "urn:weather:precipitation-probability", object: literal(0.7, "xsd:decimal") },
+              generatedBy: ref("urn:activity:forecast-run-a"),
+              scope: [
+                { predicate: "urn:weather:target-start", object: literal("2026-08-28T12:00:00Z", "xsd:dateTime") },
+                { predicate: "urn:weather:target-end", object: literal("2026-08-28T18:00:00Z", "xsd:dateTime") },
+              ],
+              citations: [selection("urn:sha256:forecast-output-a", { type: "json-pointer", pointer: "/hourly/precipitation_probability/12" })],
+            },
+            observation: {
+              id: "urn:assertion:observed-rainfall",
+              type: "Assertion",
+              body: { type: "relation", subject: ref("urn:place:city-a"), predicate: "urn:weather:observed-rainfall", object: literal(4.2, "xsd:decimal", "urn:unit:millimetre") },
+              generatedBy: ref("urn:activity:weather-station-observation"),
+              citations: [selection("urn:sha256:station-observations", { type: "table-row", key: "2026-08-28T18:00:00Z" })],
+            },
+            evaluation: {
+              id: "urn:assertion:forecast-brier-score",
+              type: "Assertion",
+              body: { type: "relation", subject: ref("urn:assertion:rain-forecast-run-a"), predicate: "urn:weather:brier-score", object: literal(0.09, "xsd:decimal") },
+              generatedBy: ref("urn:activity:forecast-evaluation"),
+            },
+          },
+        },
+      ];
+
+      const state = { scenario: scenarios[0].id, mode: "draft" };
+
+      function render() {
+        const scenario = scenarios.find((candidate) => candidate.id === state.scenario);
+        const verdictText = state.mode === "draft" ? scenario.draftVerdict : scenario.minimumVerdict;
+        const verdictClass = verdictText.startsWith("PASS") ? "pass" : "partial";
+
+        document.querySelectorAll("[data-scenario]").forEach((button) => {
+          button.setAttribute("aria-current", String(button.dataset.scenario === state.scenario));
+        });
+        document.querySelectorAll("[data-mode]").forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.mode === state.mode));
+        });
+
+        document.querySelector("#title").textContent = scenario.title;
+        document.querySelector("#question").textContent = scenario.question;
+        document.querySelector("#verdict").className = `verdict ${verdictClass}`;
+        document.querySelector("#verdict").textContent = verdictText;
+        document.querySelector("#visual").innerHTML = scenario.visual || "";
+        document.querySelector("#fixture").textContent = JSON.stringify(scenario.fixture, null, 2);
+        document.querySelector("#findings").innerHTML = scenario.findings.map((item) => `<li>${item}</li>`).join("");
+        document.querySelector("#changes").innerHTML = scenario.changes.map((item) => `<li>${item}</li>`).join("");
+        document.querySelector("#state").textContent = `state = ${JSON.stringify({
+          activeScenario: state.scenario,
+          model: state.mode,
+          verdict: verdictText,
+          recordCount: Object.keys(scenario.fixture).length,
+        })}`;
+      }
+
+      document.querySelector("#scenario-buttons").innerHTML = scenarios
+        .map((scenario) => `<button data-scenario="${scenario.id}" aria-current="false">${scenario.label}</button>`)
+        .join("");
+
+      document.addEventListener("click", (event) => {
+        const scenarioButton = event.target.closest("[data-scenario]");
+        const modeButton = event.target.closest("[data-mode]");
+        if (scenarioButton) state.scenario = scenarioButton.dataset.scenario;
+        if (modeButton) state.mode = modeButton.dataset.mode;
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>
