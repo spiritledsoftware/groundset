@@ -80,6 +80,10 @@ _Avoid_: Retrieval dump, context packet
 The task-time selection of applicable, traceable material into an Evidence packet for an Agent.
 _Avoid_: Search, ingestion
 
+**Grounding integration**:
+The small Agent-runtime adapter that requests Grounding before a model invocation and supplies the resulting Evidence packet as context. It is inside the v1 replacement boundary, but the rest of the Agent runtime is not.
+_Avoid_: Agent runtime, prompt template
+
 **Condition**:
 The evidence access granted to a model during a benchmark run.
 _Avoid_: Mode, variant
@@ -87,3 +91,43 @@ _Avoid_: Mode, variant
 **Benchmark protocol**:
 The tools, feedback, time budget, and isolation rules applied to every Condition in a benchmark run.
 _Avoid_: Product protocol, condition, mode
+
+**Development set**:
+The representative design-partner tasks that benchmark participants may inspect and use within a capped tuning budget.
+_Avoid_: Evaluation set, training corpus
+
+**Evaluation set**:
+The representative design-partner tasks locked before final tuning and withheld until the benchmark Conditions are frozen.
+_Avoid_: Development set, live traffic
+
+**Proof of value**:
+Evidence that an Agent builder can replace a bespoke RAG path with Groundset while preserving or improving task quality, traceability, and maintenance effort. Model-size substitution and epistemic quality are secondary v1 measurements, in that order.
+_Avoid_: Model benchmark, proof of concept
+
+**Bespoke RAG baseline**:
+The Agent builder's tuned retrieval system evaluated against Groundset with the same corpus, model, tools, time budget, and task set. Model-only evaluation is diagnostic; naive top-k retrieval is not the primary comparison.
+_Avoid_: Naive RAG, model-only baseline
+
+**Proof gate**:
+A separate pass condition for task quality, traceability, maintenance effort, or integration burden. Groundset must pass every Proof gate rather than hide a regression inside a composite score.
+_Avoid_: Composite score
+
+**Task quality**:
+The task-specific correctness or usefulness of an Agent's result. Measure it with executable checks or exact-answer grading where possible, and a blinded expert rubric when judgment is unavoidable.
+_Avoid_: LLM judge score, preference alone
+
+**Traceability**:
+The ability to resolve an Agent's material claims through cited Evidence to exact source selections and determine whether those selections support the claims. Measure reference resolvability, claim-to-source coverage, and support correctness separately.
+_Avoid_: Citation presence, provenance alone
+
+**Maintenance effort**:
+The work required to keep both a Corpus and its Agent integration current as material is added, updated, superseded, restricted, or removed. Corpus work and integration-code work are measured separately.
+_Avoid_: Integration burden, upkeep score
+
+**Integration burden**:
+The hands-on engineering time and Agent-architecture changes required to replace a bespoke RAG path once the proving Corpus is ready.
+_Avoid_: Lines of code, Corpus preparation
+
+**Design-partner validation**:
+A v1 trial in which one Agent builder replaces a bespoke RAG path for representative tasks, maintains the Corpus without help from Groundset's authors, and records a written choice to keep Groundset after independently running the Evaluation set and maintenance scenarios. Production deployment is not required for v1.
+_Avoid_: Integration demo, production validation
