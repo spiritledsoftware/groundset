@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Groundset canonical wire schema — throwaway prototype</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        background: #f4f1e8;
+        color: #1c211d;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      button, a { font: inherit; }
+      button { color: inherit; }
+
+      header {
+        border-bottom: 2px solid #1c211d;
+        padding: 22px clamp(16px, 4vw, 48px);
+      }
+
+      header h1 { font-size: clamp(28px, 5vw, 56px); margin: 8px 0; max-width: 24ch; }
+      header p { line-height: 1.55; margin-bottom: 0; max-width: 82ch; }
+      .warning { color: #8b2c20; font-weight: 700; text-transform: uppercase; }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+        min-height: calc(100vh - 182px);
+      }
+
+      aside {
+        border-right: 2px solid #1c211d;
+        padding: 20px;
+      }
+
+      aside h2, .eyebrow {
+        font-size: 12px;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+      }
+
+      .decision { border-top: 1px solid #1c211d; padding: 14px 0; }
+      .decision h3 { font-size: 13px; margin: 0 0 9px; }
+      .decision-options { display: grid; gap: 6px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+      button {
+        background: transparent;
+        border: 1px solid #1c211d;
+        cursor: pointer;
+        padding: 9px 10px;
+        text-align: left;
+      }
+
+      button:hover { background: #e5e0d3; }
+      button[aria-pressed="true"], button[aria-current="true"] {
+        background: #1c211d;
+        color: #fffdf6;
+      }
+
+      .reset { margin-top: 14px; width: 100%; }
+
+      article { min-width: 0; padding: clamp(18px, 4vw, 48px); }
+      article h2 { font-size: clamp(24px, 4vw, 42px); margin: 0 0 8px; }
+
+      .state-strip {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: 22px 0;
+      }
+
+      .state-card { border: 1px solid #1c211d; padding: 11px; }
+      .state-card span { display: block; font-size: 11px; text-transform: uppercase; }
+      .state-card strong { display: block; margin-top: 5px; }
+
+      .verdict {
+        align-items: flex-start;
+        border: 2px solid currentColor;
+        display: flex;
+        gap: 12px;
+        line-height: 1.45;
+        margin: 20px 0;
+        padding: 14px 16px;
+      }
+
+      .verdict.good { color: #1f6b43; }
+      .verdict.warn { color: #8b4a10; }
+      .verdict strong { white-space: nowrap; }
+
+      .grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      section { border-top: 1px solid #1c211d; min-width: 0; }
+      section h3 { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+      section p, li { line-height: 1.5; }
+      ul { padding-left: 20px; }
+
+      pre {
+        background: #202720;
+        color: #eaf0e5;
+        font-size: 12px;
+        max-height: 540px;
+        overflow: auto;
+        padding: 16px;
+        white-space: pre-wrap;
+      }
+
+      .fixture-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+
+      .fixture-toolbar button { padding: 7px 9px; }
+      .fixture-result { border: 1px solid #1c211d; padding: 14px; }
+      .fixture-result h4 { font-size: 18px; margin: 0 0 6px; }
+      .fixture-result p { margin: 8px 0; }
+
+      .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+      .badge { border: 1px solid currentColor; font-size: 11px; padding: 4px 6px; text-transform: uppercase; }
+      .pass { color: #1f6b43; }
+      .fail { color: #8b2c20; }
+      .skip { color: #666056; }
+
+      .walkthroughs { margin-top: 28px; }
+      .walkthrough-tabs, .walkthrough-steps { display: flex; flex-wrap: wrap; gap: 7px; }
+      .walkthrough-tabs button { font-weight: 700; }
+      .walkthrough-copy { max-width: 78ch; }
+      .walkthrough-steps button.done { opacity: .45; text-decoration: line-through; }
+
+      .links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+      .links a { color: #174f90; }
+
+      footer {
+        background: #d7d2c5;
+        border-top: 2px solid #1c211d;
+        font-size: 12px;
+        line-height: 1.5;
+        padding: 10px clamp(16px, 4vw, 48px);
+      }
+
+      @media (max-width: 900px) {
+        main { display: block; }
+        aside { border-bottom: 2px solid #1c211d; border-right: 0; }
+        .state-strip, .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="warning">Throwaway decision prototype</div>
+      <h1>How strict should one canonical Groundset record be?</h1>
+      <p>
+        Change the six disputed choices and watch the wire shape respond. The proposed schema is
+        ordinary JSON Schema 2020-12. It closes every core object, keeps semantic additions in Terms,
+        and reserves one namespaced bag for wire-level extensions.
+      </p>
+    </header>
+
+    <main>
+      <aside>
+        <h2>Free play: disputed choices</h2>
+        <div id="decisions"></div>
+        <button class="reset" id="reset">Reset to recommendations</button>
+      </aside>
+
+      <article>
+        <div class="eyebrow">Current state</div>
+        <h2 id="state-title"></h2>
+        <p id="state-summary"></p>
+        <div class="state-strip" id="state-strip"></div>
+        <div class="verdict" id="verdict"></div>
+
+        <div class="grid">
+          <section>
+            <h3>Representative Assertion</h3>
+            <pre id="example"></pre>
+          </section>
+          <section>
+            <h3>What changed</h3>
+            <ul id="consequences"></ul>
+            <h3>Boundary the schema cannot enforce</h3>
+            <p>
+              JSON Schema checks one record's shape. A Corpus conformance validator must check
+              identifier uniqueness, reference closure and kinds, digest-to-byte agreement, selector
+              bounds, datatype meaning, time ordering, and Activity role semantics.
+            </p>
+          </section>
+        </div>
+
+        <section>
+          <h3>Validation stress cases</h3>
+          <div class="fixture-toolbar" id="fixture-buttons"></div>
+          <div class="fixture-result">
+            <h4 id="fixture-title"></h4>
+            <p id="fixture-question"></p>
+            <div class="badges" id="fixture-badges"></div>
+            <p id="fixture-result"></p>
+            <pre id="fixture-json"></pre>
+          </div>
+        </section>
+
+        <section class="walkthroughs">
+          <h3>Guided walkthroughs</h3>
+          <div class="walkthrough-tabs" id="walkthrough-tabs"></div>
+          <p class="walkthrough-copy" id="walkthrough-copy"></p>
+          <div class="walkthrough-steps" id="walkthrough-steps"></div>
+        </section>
+
+        <div class="links">
+          <a href="canonical-corpus-wire-schema.schema.json">Open the complete JSON Schema</a>
+          <a href="canonical-corpus-wire-schema.fixtures.json">Open all Ajv-checked fixtures</a>
+          <a href="canonical-corpus-wire-schema.context.json">Open the optional JSON-LD context</a>
+        </div>
+      </article>
+    </main>
+
+    <footer id="footer-state"></footer>
+
+    <script>
+      const WireDesign = (() => {
+        const recommended = Object.freeze({
+          version: "manifest",
+          references: "strings",
+          citations: "optional",
+          activities: "roles",
+          jsonld: "projection",
+          digest: "identifier",
+        });
+
+        const decisions = [
+          {
+            key: "version",
+            label: "Schema version",
+            choices: [
+              ["manifest", "Release manifest"],
+              ["record", "Every record"],
+            ],
+          },
+          {
+            key: "references",
+            label: "Record references",
+            choices: [
+              ["strings", "URI strings"],
+              ["objects", "Reference objects"],
+            ],
+          },
+          {
+            key: "citations",
+            label: "Assertion citations",
+            choices: [
+              ["optional", "Optional"],
+              ["required", "Required"],
+            ],
+          },
+          {
+            key: "activities",
+            label: "Activity participation",
+            choices: [
+              ["roles", "Role bindings"],
+              ["fields", "Fixed fields"],
+            ],
+          },
+          {
+            key: "jsonld",
+            label: "JSON-LD",
+            choices: [
+              ["projection", "Separate projection"],
+              ["inline", "Inline @context"],
+            ],
+          },
+          {
+            key: "digest",
+            label: "Snapshot digest",
+            choices: [
+              ["identifier", "In identifier"],
+              ["duplicate", "ID plus field"],
+            ],
+          },
+        ];
+
+        const reduce = (state, action) => {
+          if (action.type === "reset") return { ...recommended };
+          if (action.type === "choose") return { ...state, [action.key]: action.value };
+          return state;
+        };
+
+        const ref = (state, id) => state.references === "strings" ? id : { ref: id };
+
+        const assertion = (state) => {
+          const record = {
+            id: "urn:assertion:router-with-state",
+            type: "Assertion",
+            body: {
+              type: "relation",
+              subject: ref(state, "urn:entity:axum-router"),
+              predicate: "https://example.org/terms/validFor",
+              object: {
+                value: ">=0.7 <0.9",
+                datatype: "https://example.org/datatypes/semver-range",
+              },
+            },
+            attributedTo: [ref(state, "urn:agent:axum-project")],
+            generatedBy: ref(state, "urn:activity:extract-docs"),
+            scope: [
+              {
+                predicate: "https://example.org/terms/packageVersion",
+                object: {
+                  value: ">=0.7 <0.9",
+                  datatype: "https://example.org/datatypes/semver-range",
+                },
+              },
+            ],
+          };
+
+          if (state.citations === "required") {
+            record.citations = [{
+              snapshot: "urn:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              selector: { type: "text-quote", exact: "Router::with_state" },
+            }];
+          }
+          if (state.version === "record") record.schema = "https://groundset.dev/schema/canonical-record/v1";
+          if (state.jsonld === "inline") record["@context"] = "https://groundset.dev/context/v1";
+          return record;
+        };
+
+        const consequences = (state) => {
+          const messages = [];
+          messages.push(state.version === "manifest"
+            ? "One release declares one schema. Records do not repeat it."
+            : "Every record repeats a schema URI and mixed-version releases become possible.");
+          messages.push(state.references === "strings"
+            ? "A string in a value position is always a record ID. Source strings use typed literals."
+            : "Every reference gains a wrapper, which is explicit but much noisier in relations and roles.");
+          messages.push(state.citations === "optional"
+            ? "Missing citations mean none were recorded. Attribution and generating Activity remain mandatory."
+            : "Every Assertion must cite a Snapshot, so uncaptured testimony and imported positions are rejected.");
+          messages.push(state.activities === "roles"
+            ? "Namespaced role bindings cover inputs, outputs, Agents, tools, methods, and parameters with one shape."
+            : "Fixed provenance fields are easier to query but domain parameters will keep adding fields.");
+          messages.push(state.jsonld === "projection"
+            ? "Canonical JSON stays closed. An adapter wraps records in an @context and @graph."
+            : "@context becomes a second accepted canonical field and ordinary consumers must preserve it.");
+          messages.push(state.digest === "identifier"
+            ? "The Snapshot ID is urn:sha256:<digest>. The release manifest handles transfer integrity."
+            : "The same digest appears twice, so conformance must reject disagreement between ID and field.");
+          return messages;
+        };
+
+        const score = (state) => Object.keys(recommended)
+          .filter((key) => state[key] === recommended[key]).length;
+
+        return { recommended, decisions, reduce, assertion, consequences, score };
+      })();
+
+      const fixtures = [
+        {
+          id: "all-record-kinds",
+          label: "8 kinds",
+          title: "All eight record kinds",
+          question: "The complete accepted model fits one closed envelope and eight discriminated record shapes.",
+          schema: "pass",
+          corpus: "pass",
+          result: "Entity, Artifact, Snapshot, Assertion, Agent, Activity, Collection, and Term validate together. Names and semantic categories remain Assertions rather than convenient ad hoc fields.",
+          json: { id: "urn:entity:yagni", type: "Entity" },
+        },
+        {
+          id: "ad-hoc",
+          label: "Loose field",
+          title: "Ad hoc Entity field",
+          question: "Should a convenient name field silently become part of every Entity?",
+          schema: "fail",
+          corpus: "skip",
+          result: "Rejected by unevaluatedProperties. A name belongs in an attributed Assertion or a namespaced extension profile.",
+          json: { id: "urn:entity:yagni", type: "Entity", name: "YAGNI" },
+        },
+        {
+          id: "snapshot",
+          label: "Snapshot ID",
+          title: "Content-addressed Snapshot",
+          question: "Does a citation identify immutable bytes rather than a changing source URL?",
+          schema: "pass",
+          corpus: "skip",
+          result: "The ID must be urn:sha256 followed by 64 lowercase hexadecimal characters. The source URL remains separate.",
+          json: {
+            id: "urn:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            type: "Snapshot",
+            artifact: "urn:artifact:weather-map",
+            mediaType: "image/png",
+            byteLength: 182401,
+            content: "objects/sha256/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            source: "https://example.org/weather/map.png",
+            acquiredAt: "2026-08-27T10:00:00Z",
+          },
+        },
+        {
+          id: "mutable-snapshot",
+          label: "Mutable ID",
+          title: "Mutable URL used as Snapshot ID",
+          question: "Can a changing URL masquerade as immutable source identity?",
+          schema: "fail",
+          corpus: "skip",
+          result: "Rejected by the Snapshot ID pattern. A URL may identify the source, never the captured bytes.",
+          json: { id: "https://example.org/weather/map.png", type: "Snapshot" },
+        },
+        {
+          id: "uncited",
+          label: "Uncited",
+          title: "Attributed Assertion with no citation",
+          question: "Can Groundset preserve a position when no supporting Snapshot was recorded?",
+          schema: "pass",
+          corpus: "skip",
+          result: "Yes. attributedTo and generatedBy are mandatory. citations is optional but nonempty when present. Absence means not recorded, not universally true.",
+          json: {
+            id: "urn:assertion:interview-position",
+            type: "Assertion",
+            body: { type: "claim", text: "The launch should be postponed.", language: "en" },
+            attributedTo: ["urn:agent:interviewee"],
+            generatedBy: "urn:activity:interview",
+          },
+        },
+        {
+          id: "unattributed",
+          label: "No owner",
+          title: "Assertion with no attribution",
+          question: "Should Groundset accept a position when it cannot say whose position it records?",
+          schema: "fail",
+          corpus: "skip",
+          result: "Rejected. Unknown attribution requires an explicit unknown Agent rather than omission.",
+          json: {
+            id: "urn:assertion:ownerless",
+            type: "Assertion",
+            body: { type: "claim", text: "The launch should be postponed.", language: "en" },
+            generatedBy: "urn:activity:interview",
+          },
+        },
+        {
+          id: "literal",
+          label: "Literal",
+          title: "Typed measurement",
+          question: "Can a relation preserve a numeric value without a global measurement field?",
+          schema: "pass",
+          corpus: "skip",
+          result: "The shared literal shape carries the source value, datatype, and optional unit.",
+          json: {
+            value: 21.4,
+            datatype: "http://www.w3.org/2001/XMLSchema#decimal",
+            unit: "https://example.org/units/degree-celsius",
+          },
+        },
+        {
+          id: "bad-literal",
+          label: "Bad literal",
+          title: "Numeric literal with a language tag",
+          question: "Should a number carry a human-language tag?",
+          schema: "fail",
+          corpus: "skip",
+          result: "Rejected. language requires a string value; unit requires a numeric value.",
+          json: {
+            value: 21.4,
+            datatype: "http://www.w3.org/2001/XMLSchema#decimal",
+            language: "en",
+          },
+        },
+        {
+          id: "selector",
+          label: "Selector",
+          title: "Namespaced table-cell selector",
+          question: "Can a domain add a selector without adding loose fields to the core schema?",
+          schema: "pass",
+          corpus: "skip",
+          result: "Core selectors cover text quote, text position, and byte range. Other selectors use an absolute profile IRI and profile-owned value.",
+          json: {
+            snapshot: "urn:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            selector: {
+              type: "https://example.org/selectors/table-cell/v1",
+              value: { sheet: "Summary", row: 9, column: "D" },
+            },
+          },
+        },
+        {
+          id: "bad-selector",
+          label: "Short selector",
+          title: "Unqualified custom selector",
+          question: "Can two publishers assign different meanings to the same short selector name?",
+          schema: "fail",
+          corpus: "skip",
+          result: "Rejected. Custom selector types must be absolute profile IRIs.",
+          json: { selector: { type: "code-symbol", value: { symbol: "validate_token" } } },
+        },
+        {
+          id: "activity",
+          label: "Roles",
+          title: "Generic Activity roles",
+          question: "Can one Activity shape hold an input, responsible Agent, tool, and domain parameter?",
+          schema: "pass",
+          corpus: "skip",
+          result: "Each entry binds a namespaced role Term to a reference, selection, or typed literal. No scenario-specific Activity fields are needed.",
+          json: {
+            id: "urn:activity:render-7",
+            type: "Activity",
+            startedAt: "2026-08-27T10:00:00Z",
+            roles: [
+              { role: "https://groundset.dev/terms/used", value: "urn:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" },
+              { role: "https://groundset.dev/terms/responsibleAgent", value: "urn:agent:chromium-136" },
+              { role: "https://example.org/render/viewportWidth", value: { value: 1280, datatype: "http://www.w3.org/2001/XMLSchema#integer", unit: "https://example.org/units/css-pixel" } },
+            ],
+          },
+        },
+        {
+          id: "loose-provenance",
+          label: "Loose roles",
+          title: "Loose provenance fields",
+          question: "Should input and confidence become Activity fields because one importer emitted them?",
+          schema: "fail",
+          corpus: "skip",
+          result: "Rejected. Core provenance uses role bindings. Wire extensions require absolute profile IRI keys.",
+          json: {
+            id: "urn:activity:render-7",
+            type: "Activity",
+            startedAt: "2026-08-27T10:00:00Z",
+            roles: [],
+            input: "urn:artifact:html",
+            confidence: 0.98,
+            extensions: { render: { colorScheme: "light" } },
+          },
+        },
+        {
+          id: "conformance",
+          label: "Cross-record",
+          title: "Schema-valid but invalid Corpus",
+          question: "Can JSON Schema catch duplicate IDs, dangling references, and references to the wrong record kind?",
+          schema: "pass",
+          corpus: "fail",
+          result: "No. These records pass independently. Corpus conformance rejects the duplicate Artifact ID, missing Collection member, and Snapshot whose artifact points to an Agent.",
+          json: [
+            { id: "urn:artifact:duplicate", type: "Artifact" },
+            { id: "urn:artifact:duplicate", type: "Artifact" },
+            { id: "urn:agent:not-an-artifact", type: "Agent" },
+            {
+              id: "urn:sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              type: "Snapshot",
+              artifact: "urn:agent:not-an-artifact",
+              mediaType: "text/plain",
+              byteLength: 5,
+              content: "objects/sha256/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              acquiredAt: "2026-08-27T10:00:00Z",
+            },
+          ],
+        },
+      ];
+
+      const walkthroughs = [
+        {
+          id: "identity",
+          label: "Identity and versioning",
+          copy: "Start from the recommended design, then inspect where schema version and Snapshot digest belong. Watch for duplicated state that can disagree.",
+          steps: [
+            { label: "1. Reset", action: { type: "reset" }, fixture: "all-record-kinds" },
+            { label: "2. Put version on every record", action: { type: "choose", key: "version", value: "record" }, fixture: "all-record-kinds" },
+            { label: "3. Duplicate the digest", action: { type: "choose", key: "digest", value: "duplicate" }, fixture: "snapshot" },
+            { label: "4. Restore the recommendation", action: { type: "reset" }, fixture: "snapshot" },
+          ],
+        },
+        {
+          id: "provenance",
+          label: "Assertion provenance",
+          copy: "Compare a missing citation with missing attribution. Groundset may preserve an unsupported position, but it must always say whose position it records and which Activity recorded it.",
+          steps: [
+            { label: "1. Reset", action: { type: "reset" }, fixture: "uncited" },
+            { label: "2. Require every citation", action: { type: "choose", key: "citations", value: "required" }, fixture: "uncited" },
+            { label: "3. Inspect missing attribution", action: { type: "choose", key: "citations", value: "optional" }, fixture: "unattributed" },
+          ],
+        },
+        {
+          id: "extensions",
+          label: "Extension pressure",
+          copy: "Push domain-specific selectors and Activity parameters through the model. Semantic variation uses Terms and role bindings. Wire variation stays under an absolute profile IRI.",
+          steps: [
+            { label: "1. Namespaced selector", action: { type: "reset" }, fixture: "selector" },
+            { label: "2. Unqualified selector", action: { type: "choose", key: "activities", value: "roles" }, fixture: "bad-selector" },
+            { label: "3. Generic Activity roles", action: { type: "choose", key: "activities", value: "roles" }, fixture: "activity" },
+            { label: "4. Fixed Activity fields", action: { type: "choose", key: "activities", value: "fields" }, fixture: "loose-provenance" },
+          ],
+        },
+        {
+          id: "boundary",
+          label: "Validation boundary",
+          copy: "The record schema is deliberately not a graph validator. Finish by viewing a Corpus that is structurally valid but cannot be published because its references do not close.",
+          steps: [
+            { label: "1. Closed record shapes", action: { type: "reset" }, fixture: "ad-hoc" },
+            { label: "2. Typed literals", action: { type: "reset" }, fixture: "bad-literal" },
+            { label: "3. Cross-record conformance", action: { type: "reset" }, fixture: "conformance" },
+          ],
+        },
+      ];
+
+      let state = { ...WireDesign.recommended };
+      let selectedFixture = fixtures[0].id;
+      let selectedWalkthrough = walkthroughs[0].id;
+      let completedSteps = new Set();
+
+      const byId = (items, id) => items.find((entry) => entry.id === id);
+
+      const choose = (action, fixtureId) => {
+        state = WireDesign.reduce(state, action);
+        if (fixtureId) selectedFixture = fixtureId;
+        render();
+      };
+
+      const renderDecisions = () => {
+        const root = document.querySelector("#decisions");
+        root.replaceChildren(...WireDesign.decisions.map((decision) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "decision";
+          const heading = document.createElement("h3");
+          heading.textContent = decision.label;
+          const options = document.createElement("div");
+          options.className = "decision-options";
+          for (const [value, label] of decision.choices) {
+            const button = document.createElement("button");
+            button.textContent = label;
+            button.setAttribute("aria-pressed", String(state[decision.key] === value));
+            button.addEventListener("click", () => choose({ type: "choose", key: decision.key, value }));
+            options.append(button);
+          }
+          wrapper.append(heading, options);
+          return wrapper;
+        }));
+      };
+
+      const renderState = () => {
+        const score = WireDesign.score(state);
+        const exact = score === WireDesign.decisions.length;
+        document.querySelector("#state-title").textContent = exact
+          ? "Small, closed, and projection-friendly"
+          : `${score} of ${WireDesign.decisions.length} recommendations retained`;
+        document.querySelector("#state-summary").textContent = exact
+          ? "This is the proposed v1 record contract. Release packaging and cross-record checks remain separate."
+          : "The alternate choices are representable, but they add duplicate state, looser fields, or a second canonical form.";
+
+        const strip = document.querySelector("#state-strip");
+        const fields = [
+          ["Envelope", "id + type + extensions"],
+          ["Schema URI", "…/canonical-record/v1"],
+          ["Record kinds", "8"],
+          ["Core selectors", "3"],
+          ["Assertion bodies", "claim | relation"],
+          ["Validation tiers", "record + Corpus"],
+        ];
+        strip.replaceChildren(...fields.map(([label, value]) => {
+          const card = document.createElement("div");
+          card.className = "state-card";
+          card.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+          return card;
+        }));
+
+        const verdict = document.querySelector("#verdict");
+        verdict.className = `verdict ${exact ? "good" : "warn"}`;
+        verdict.innerHTML = exact
+          ? "<strong>Recommendation</strong><span>Use this shape as the prototype contract. No per-record schema version, reference wrapper, mandatory citation, fixed Activity parameter fields, inline JSON-LD, or duplicate digest.</span>"
+          : "<strong>Pressure found</strong><span>The current combination departs from the smallest strict shape. Check the consequences before keeping it.</span>";
+
+        document.querySelector("#example").textContent = JSON.stringify(WireDesign.assertion(state), null, 2);
+        const list = document.querySelector("#consequences");
+        list.replaceChildren(...WireDesign.consequences(state).map((text) => {
+          const item = document.createElement("li");
+          item.textContent = text;
+          return item;
+        }));
+        document.querySelector("#footer-state").textContent = `State: ${JSON.stringify(state)}. The HTML is a decision aid; Ajv compiled the companion JSON Schema and checked every fixture.`;
+      };
+
+      const renderFixtures = () => {
+        const toolbar = document.querySelector("#fixture-buttons");
+        toolbar.replaceChildren(...fixtures.map((fixture) => {
+          const button = document.createElement("button");
+          button.textContent = fixture.label;
+          button.setAttribute("aria-current", String(fixture.id === selectedFixture));
+          button.addEventListener("click", () => {
+            selectedFixture = fixture.id;
+            renderFixtures();
+          });
+          return button;
+        }));
+
+        const fixture = byId(fixtures, selectedFixture);
+        document.querySelector("#fixture-title").textContent = fixture.title;
+        document.querySelector("#fixture-question").textContent = fixture.question;
+        document.querySelector("#fixture-result").textContent = fixture.result;
+        document.querySelector("#fixture-json").textContent = JSON.stringify(fixture.json, null, 2);
+        const badges = document.querySelector("#fixture-badges");
+        const badgeData = [
+          [fixture.schema, `Record schema: ${fixture.schema}`],
+          [fixture.corpus, `Corpus conformance: ${fixture.corpus}`],
+        ];
+        badges.replaceChildren(...badgeData.map(([status, label]) => {
+          const badge = document.createElement("span");
+          badge.className = `badge ${status}`;
+          badge.textContent = label;
+          return badge;
+        }));
+      };
+
+      const renderWalkthroughs = () => {
+        const tabs = document.querySelector("#walkthrough-tabs");
+        tabs.replaceChildren(...walkthroughs.map((walkthrough) => {
+          const button = document.createElement("button");
+          button.textContent = walkthrough.label;
+          button.setAttribute("aria-pressed", String(walkthrough.id === selectedWalkthrough));
+          button.addEventListener("click", () => {
+            selectedWalkthrough = walkthrough.id;
+            completedSteps = new Set();
+            state = WireDesign.reduce(state, { type: "reset" });
+            render();
+          });
+          return button;
+        }));
+
+        const walkthrough = byId(walkthroughs, selectedWalkthrough);
+        document.querySelector("#walkthrough-copy").textContent = walkthrough.copy;
+        const steps = document.querySelector("#walkthrough-steps");
+        steps.replaceChildren(...walkthrough.steps.map((step, index) => {
+          const button = document.createElement("button");
+          button.textContent = step.label;
+          if (completedSteps.has(index)) button.className = "done";
+          button.addEventListener("click", () => {
+            completedSteps.add(index);
+            state = WireDesign.reduce(state, step.action);
+            selectedFixture = step.fixture;
+            render();
+          });
+          return button;
+        }));
+      };
+
+      const render = () => {
+        renderDecisions();
+        renderState();
+        renderFixtures();
+        renderWalkthroughs();
+      };
+
+      document.querySelector("#reset").addEventListener("click", () => {
+        state = WireDesign.reduce(state, { type: "reset" });
+        completedSteps = new Set();
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>

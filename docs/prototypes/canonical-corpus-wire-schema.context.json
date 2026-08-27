@@ -1,0 +1,100 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "gs": "https://groundset.dev/vocab/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "id": "@id",
+    "type": "@type",
+    "Entity": "gs:Entity",
+    "Artifact": "gs:Artifact",
+    "Snapshot": "gs:Snapshot",
+    "Assertion": "gs:Assertion",
+    "Agent": "prov:Agent",
+    "Activity": "prov:Activity",
+    "Collection": "gs:Collection",
+    "Term": "gs:Term",
+    "claim": "gs:ClaimBody",
+    "relation": "gs:RelationBody",
+    "text-quote": "gs:TextQuoteSelector",
+    "text-position": "gs:TextPositionSelector",
+    "byte-range": "gs:ByteRangeSelector",
+    "artifact": {
+      "@id": "gs:artifact",
+      "@type": "@id"
+    },
+    "body": "gs:body",
+    "subject": {
+      "@id": "rdf:subject",
+      "@type": "@id"
+    },
+    "predicate": {
+      "@id": "rdf:predicate",
+      "@type": "@id"
+    },
+    "object": "rdf:object",
+    "attributedTo": {
+      "@id": "prov:wasAttributedTo",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "generatedBy": {
+      "@id": "prov:wasGeneratedBy",
+      "@type": "@id"
+    },
+    "source": {
+      "@id": "dcterms:source",
+      "@type": "@id"
+    },
+    "members": {
+      "@id": "dcterms:hasPart",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "snapshot": {
+      "@id": "gs:snapshot",
+      "@type": "@id"
+    },
+    "selector": "gs:selector",
+    "citations": {
+      "@id": "dcterms:references",
+      "@container": "@set"
+    },
+    "scope": {
+      "@id": "gs:scope",
+      "@container": "@set"
+    },
+    "roles": {
+      "@id": "gs:roles",
+      "@container": "@set"
+    },
+    "role": {
+      "@id": "gs:role",
+      "@type": "@id"
+    },
+    "value": "rdf:value",
+    "datatype": {
+      "@id": "gs:datatype",
+      "@type": "@id"
+    },
+    "unit": {
+      "@id": "gs:unit",
+      "@type": "@id"
+    },
+    "language": "dcterms:language",
+    "text": "rdf:value",
+    "mediaType": "dcterms:format",
+    "byteLength": "gs:byteLength",
+    "content": "gs:content",
+    "license": "dcterms:license",
+    "acquiredAt": "gs:acquiredAt",
+    "publishedAt": "dcterms:issued",
+    "startedAt": "prov:startedAtTime",
+    "endedAt": "prov:endedAtTime",
+    "termType": "gs:termType",
+    "label": "gs:label",
+    "definition": "gs:definition",
+    "extensions": "gs:extensions"
+  }
+}

@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://groundset.dev/schema/canonical-record/v1",
+  "title": "Groundset canonical record v1 prototype",
+  "description": "Throwaway decision prototype. The schema URI and field names are not yet a published specification.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/entity" },
+    { "$ref": "#/$defs/artifact" },
+    { "$ref": "#/$defs/snapshot" },
+    { "$ref": "#/$defs/assertion" },
+    { "$ref": "#/$defs/agent" },
+    { "$ref": "#/$defs/activity" },
+    { "$ref": "#/$defs/collection" },
+    { "$ref": "#/$defs/term" }
+  ],
+  "$defs": {
+    "recordId": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+    },
+    "snapshotId": {
+      "type": "string",
+      "pattern": "^urn:sha256:[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/recordId" },
+      "additionalProperties": true
+    },
+    "envelope": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/recordId" },
+        "type": { "type": "string" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["id", "type"]
+    },
+    "literal": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" }
+          ]
+        },
+        "datatype": { "$ref": "#/$defs/recordId" },
+        "language": { "$ref": "#/$defs/language" },
+        "unit": { "$ref": "#/$defs/recordId" }
+      },
+      "required": ["value", "datatype"],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "language": true },
+            "required": ["language"]
+          },
+          "then": {
+            "properties": { "value": { "type": "string" } },
+            "not": {
+              "properties": { "unit": true },
+              "required": ["unit"]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "unit": true },
+            "required": ["unit"]
+          },
+          "then": {
+            "properties": { "value": { "type": "number" } },
+            "not": {
+              "properties": { "language": true },
+              "required": ["language"]
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "localizedText": {
+      "type": "object",
+      "properties": {
+        "value": { "type": "string" },
+        "datatype": { "$ref": "#/$defs/recordId" },
+        "language": { "$ref": "#/$defs/language" }
+      },
+      "required": ["value", "datatype"],
+      "unevaluatedProperties": false
+    },
+    "textQuoteSelector": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "text-quote" },
+        "exact": { "type": "string", "minLength": 1 },
+        "prefix": { "type": "string" },
+        "suffix": { "type": "string" }
+      },
+      "required": ["type", "exact"],
+      "unevaluatedProperties": false
+    },
+    "textPositionSelector": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "text-position" },
+        "start": { "type": "integer", "minimum": 0 },
+        "end": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["type", "start", "end"],
+      "unevaluatedProperties": false
+    },
+    "byteRangeSelector": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "byte-range" },
+        "start": { "type": "integer", "minimum": 0 },
+        "end": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["type", "start", "end"],
+      "unevaluatedProperties": false
+    },
+    "profileSelector": {
+      "type": "object",
+      "properties": {
+        "type": { "$ref": "#/$defs/recordId" },
+        "value": true
+      },
+      "required": ["type", "value"],
+      "unevaluatedProperties": false
+    },
+    "selector": {
+      "oneOf": [
+        { "$ref": "#/$defs/textQuoteSelector" },
+        { "$ref": "#/$defs/textPositionSelector" },
+        { "$ref": "#/$defs/byteRangeSelector" },
+        { "$ref": "#/$defs/profileSelector" }
+      ]
+    },
+    "selection": {
+      "type": "object",
+      "properties": {
+        "snapshot": { "$ref": "#/$defs/snapshotId" },
+        "selector": { "$ref": "#/$defs/selector" }
+      },
+      "required": ["snapshot", "selector"],
+      "unevaluatedProperties": false
+    },
+    "value": {
+      "oneOf": [
+        { "$ref": "#/$defs/recordId" },
+        { "$ref": "#/$defs/selection" },
+        { "$ref": "#/$defs/literal" }
+      ]
+    },
+    "scopeValue": {
+      "oneOf": [
+        { "$ref": "#/$defs/recordId" },
+        { "$ref": "#/$defs/literal" }
+      ]
+    },
+    "scopeConstraint": {
+      "type": "object",
+      "properties": {
+        "predicate": { "$ref": "#/$defs/recordId" },
+        "object": { "$ref": "#/$defs/scopeValue" }
+      },
+      "required": ["predicate", "object"],
+      "unevaluatedProperties": false
+    },
+    "claimBody": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "claim" },
+        "text": { "type": "string", "minLength": 1 },
+        "language": { "$ref": "#/$defs/language" }
+      },
+      "required": ["type", "text", "language"],
+      "unevaluatedProperties": false
+    },
+    "relationBody": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "relation" },
+        "subject": { "$ref": "#/$defs/value" },
+        "predicate": { "$ref": "#/$defs/recordId" },
+        "object": { "$ref": "#/$defs/value" }
+      },
+      "required": ["type", "subject", "predicate", "object"],
+      "unevaluatedProperties": false
+    },
+    "activityRole": {
+      "type": "object",
+      "properties": {
+        "role": { "$ref": "#/$defs/recordId" },
+        "value": { "$ref": "#/$defs/value" }
+      },
+      "required": ["role", "value"],
+      "unevaluatedProperties": false
+    },
+    "entity": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "properties": { "type": { "const": "Entity" } },
+          "required": ["type"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "properties": { "type": { "const": "Artifact" } },
+          "required": ["type"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "snapshot": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "properties": {
+            "id": { "$ref": "#/$defs/snapshotId" },
+            "type": { "const": "Snapshot" },
+            "artifact": { "$ref": "#/$defs/recordId" },
+            "mediaType": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+(?:\\s*;.*)?$"
+            },
+            "byteLength": { "type": "integer", "minimum": 0 },
+            "content": { "type": "string", "minLength": 1, "pattern": "^\\S+$" },
+            "source": { "$ref": "#/$defs/recordId" },
+            "acquiredAt": { "$ref": "#/$defs/timestamp" },
+            "publishedAt": { "$ref": "#/$defs/timestamp" },
+            "license": { "$ref": "#/$defs/scopeValue" }
+          },
+          "required": ["type", "artifact", "mediaType", "byteLength", "content", "acquiredAt"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "assertion": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "properties": {
+            "type": { "const": "Assertion" },
+            "body": {
+              "oneOf": [
+                { "$ref": "#/$defs/claimBody" },
+                { "$ref": "#/$defs/relationBody" }
+              ]
+            },
+            "attributedTo": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/recordId" },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "generatedBy": { "$ref": "#/$defs/recordId" },
+            "scope": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/scopeConstraint" },
+              "minItems": 1
+            },
+            "citations": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/selection" },
+              "minItems": 1
+            }
+          },
+          "required": ["type", "body", "attributedTo", "generatedBy"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "agent": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "properties": { "type": { "const": "Agent" } },
+          "required": ["type"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "activity": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "properties": {
+            "type": { "const": "Activity" },
+            "startedAt": { "$ref": "#/$defs/timestamp" },
+            "endedAt": { "$ref": "#/$defs/timestamp" },
+            "roles": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/activityRole" },
+              "minItems": 1
+            }
+          },
+          "required": ["type", "startedAt", "roles"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "collection": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "properties": {
+            "type": { "const": "Collection" },
+            "members": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/recordId" },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "attributedTo": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/recordId" },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "generatedBy": { "$ref": "#/$defs/recordId" }
+          },
+          "required": ["type", "members", "attributedTo"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "term": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "properties": {
+            "type": { "const": "Term" },
+            "termType": { "enum": ["Category", "Predicate"] },
+            "label": { "$ref": "#/$defs/localizedText" },
+            "definition": { "$ref": "#/$defs/localizedText" }
+          },
+          "required": ["type", "termType", "label", "definition"]
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

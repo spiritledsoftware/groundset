@@ -1,0 +1,362 @@
+[
+  {
+    "id": "all-record-kinds",
+    "label": "All eight record kinds",
+    "question": "Can the closed envelope represent the complete accepted model without record-specific metadata leaking into the core?",
+    "expected": { "schema": "pass", "corpus": "pass" },
+    "records": [
+      { "id": "urn:entity:yagni", "type": "Entity" },
+      { "id": "urn:entity:heuristic", "type": "Entity" },
+      { "id": "urn:artifact:yagni-note", "type": "Artifact" },
+      {
+        "id": "urn:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "type": "Snapshot",
+        "artifact": "urn:artifact:yagni-note",
+        "mediaType": "text/markdown; charset=utf-8",
+        "byteLength": 74,
+        "content": "objects/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source": "https://example.org/notes/yagni",
+        "acquiredAt": "2026-08-27T10:00:00Z",
+        "license": {
+          "value": "CC-BY-4.0",
+          "datatype": "https://spdx.org/rdf/terms#licenseId"
+        }
+      },
+      { "id": "urn:agent:curator", "type": "Agent" },
+      {
+        "id": "urn:activity:extract-yagni",
+        "type": "Activity",
+        "startedAt": "2026-08-27T10:01:00Z",
+        "roles": [
+          {
+            "role": "https://groundset.dev/terms/used",
+            "value": "urn:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "role": "https://groundset.dev/terms/responsibleAgent",
+            "value": "urn:agent:curator"
+          }
+        ]
+      },
+      {
+        "id": "https://example.org/terms/instanceOf",
+        "type": "Term",
+        "termType": "Predicate",
+        "label": {
+          "value": "instance of",
+          "datatype": "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
+          "language": "en"
+        },
+        "definition": {
+          "value": "The subject belongs to the category identified by the object.",
+          "datatype": "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
+          "language": "en"
+        }
+      },
+      {
+        "id": "urn:assertion:yagni-is-heuristic",
+        "type": "Assertion",
+        "body": {
+          "type": "relation",
+          "subject": "urn:entity:yagni",
+          "predicate": "https://example.org/terms/instanceOf",
+          "object": "urn:entity:heuristic"
+        },
+        "attributedTo": ["urn:agent:curator"],
+        "generatedBy": "urn:activity:extract-yagni",
+        "citations": [
+          {
+            "snapshot": "urn:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "selector": {
+              "type": "text-quote",
+              "exact": "YAGNI is a software design heuristic."
+            }
+          }
+        ]
+      },
+      {
+        "id": "urn:collection:design-heuristics",
+        "type": "Collection",
+        "members": ["urn:entity:yagni", "urn:assertion:yagni-is-heuristic"],
+        "attributedTo": ["urn:agent:curator"],
+        "generatedBy": "urn:activity:extract-yagni"
+      }
+    ]
+  },
+  {
+    "id": "reject-ad-hoc-field",
+    "label": "Reject an ad hoc field",
+    "question": "Should a convenient top-level name field silently become part of every Entity?",
+    "expected": { "schema": "fail", "corpus": "skip" },
+    "records": [
+      {
+        "id": "urn:entity:yagni",
+        "type": "Entity",
+        "name": "YAGNI"
+      }
+    ]
+  },
+  {
+    "id": "snapshot-content-id",
+    "label": "Immutable Snapshot identity",
+    "question": "Does the Snapshot identifier prove which exact bytes a citation addresses?",
+    "expected": { "schema": "pass", "corpus": "skip" },
+    "records": [
+      {
+        "id": "urn:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "type": "Snapshot",
+        "artifact": "urn:artifact:weather-map",
+        "mediaType": "image/png",
+        "byteLength": 182401,
+        "content": "objects/sha256/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source": "https://example.org/weather/map.png",
+        "acquiredAt": "2026-08-27T10:00:00Z"
+      }
+    ]
+  },
+  {
+    "id": "reject-mutable-snapshot-id",
+    "label": "Reject a mutable Snapshot ID",
+    "question": "Can a changing URL masquerade as the identity of immutable source bytes?",
+    "expected": { "schema": "fail", "corpus": "skip" },
+    "records": [
+      {
+        "id": "https://example.org/weather/map.png",
+        "type": "Snapshot",
+        "artifact": "urn:artifact:weather-map",
+        "mediaType": "image/png",
+        "byteLength": 182401,
+        "content": "objects/current-map.png",
+        "acquiredAt": "2026-08-27T10:00:00Z"
+      }
+    ]
+  },
+  {
+    "id": "uncited-attributed-assertion",
+    "label": "Assertion with no citation",
+    "question": "Can Groundset preserve a clearly attributed position even when no supporting Snapshot was recorded?",
+    "expected": { "schema": "pass", "corpus": "skip" },
+    "records": [
+      {
+        "id": "urn:assertion:interview-position",
+        "type": "Assertion",
+        "body": {
+          "type": "claim",
+          "text": "The launch should be postponed.",
+          "language": "en"
+        },
+        "attributedTo": ["urn:agent:interviewee"],
+        "generatedBy": "urn:activity:interview"
+      }
+    ]
+  },
+  {
+    "id": "reject-unattributed-assertion",
+    "label": "Reject missing attribution",
+    "question": "Should an Assertion be accepted when Groundset cannot say whose position it records?",
+    "expected": { "schema": "fail", "corpus": "skip" },
+    "records": [
+      {
+        "id": "urn:assertion:ownerless",
+        "type": "Assertion",
+        "body": {
+          "type": "claim",
+          "text": "The launch should be postponed.",
+          "language": "en"
+        },
+        "generatedBy": "urn:activity:interview"
+      }
+    ]
+  },
+  {
+    "id": "typed-measurement",
+    "label": "Typed measurement",
+    "question": "Can a relation preserve a numeric source value without inventing a global measurement field?",
+    "expected": { "schema": "pass", "corpus": "skip" },
+    "records": [
+      {
+        "id": "urn:assertion:temperature",
+        "type": "Assertion",
+        "body": {
+          "type": "relation",
+          "subject": "urn:entity:sensor-4",
+          "predicate": "https://example.org/terms/measuredTemperature",
+          "object": {
+            "value": 21.4,
+            "datatype": "http://www.w3.org/2001/XMLSchema#decimal",
+            "unit": "https://example.org/units/degree-celsius"
+          }
+        },
+        "attributedTo": ["urn:agent:sensor-4"],
+        "generatedBy": "urn:activity:reading-42"
+      }
+    ]
+  },
+  {
+    "id": "reject-invalid-literal",
+    "label": "Reject incoherent literal metadata",
+    "question": "Should a numeric value be allowed to carry a human-language tag?",
+    "expected": { "schema": "fail", "corpus": "skip" },
+    "records": [
+      {
+        "id": "urn:assertion:temperature",
+        "type": "Assertion",
+        "body": {
+          "type": "relation",
+          "subject": "urn:entity:sensor-4",
+          "predicate": "https://example.org/terms/measuredTemperature",
+          "object": {
+            "value": 21.4,
+            "datatype": "http://www.w3.org/2001/XMLSchema#decimal",
+            "language": "en"
+          }
+        },
+        "attributedTo": ["urn:agent:sensor-4"],
+        "generatedBy": "urn:activity:reading-42"
+      }
+    ]
+  },
+  {
+    "id": "profile-selector",
+    "label": "Namespaced selector profile",
+    "question": "Can a domain add table-cell or code-symbol selections without adding loose fields to the core schema?",
+    "expected": { "schema": "pass", "corpus": "skip" },
+    "records": [
+      {
+        "id": "urn:assertion:table-value",
+        "type": "Assertion",
+        "body": {
+          "type": "claim",
+          "text": "The reported total is 42.",
+          "language": "en"
+        },
+        "attributedTo": ["urn:agent:table-author"],
+        "generatedBy": "urn:activity:table-import",
+        "citations": [
+          {
+            "snapshot": "urn:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "selector": {
+              "type": "https://example.org/selectors/table-cell/v1",
+              "value": { "sheet": "Summary", "row": 9, "column": "D" }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "reject-unqualified-selector",
+    "label": "Reject an unqualified selector",
+    "question": "Should two publishers be allowed to give code-symbol different meanings under the same short name?",
+    "expected": { "schema": "fail", "corpus": "skip" },
+    "records": [
+      {
+        "id": "urn:assertion:symbol",
+        "type": "Assertion",
+        "body": {
+          "type": "claim",
+          "text": "This function validates a token.",
+          "language": "en"
+        },
+        "attributedTo": ["urn:agent:analyzer"],
+        "generatedBy": "urn:activity:analysis",
+        "citations": [
+          {
+            "snapshot": "urn:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "selector": {
+              "type": "code-symbol",
+              "value": { "symbol": "validate_token" }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "activity-roles-and-extension",
+    "label": "Generic Activity roles",
+    "question": "Can one Activity shape represent an input, responsible Agent, tool, and domain parameter?",
+    "expected": { "schema": "pass", "corpus": "skip" },
+    "records": [
+      {
+        "id": "urn:activity:render-7",
+        "type": "Activity",
+        "startedAt": "2026-08-27T10:00:00Z",
+        "endedAt": "2026-08-27T10:00:02Z",
+        "roles": [
+          {
+            "role": "https://groundset.dev/terms/used",
+            "value": "urn:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "role": "https://groundset.dev/terms/responsibleAgent",
+            "value": "urn:agent:chromium-136"
+          },
+          {
+            "role": "https://example.org/render/viewportWidth",
+            "value": {
+              "value": 1280,
+              "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+              "unit": "https://example.org/units/css-pixel"
+            }
+          }
+        ],
+        "extensions": {
+          "https://example.org/render-profile/v1": {
+            "colorScheme": "light"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "reject-loose-provenance",
+    "label": "Reject loose provenance fields",
+    "question": "Should input and confidence become Activity fields because one importer happened to emit them?",
+    "expected": { "schema": "fail", "corpus": "skip" },
+    "records": [
+      {
+        "id": "urn:activity:render-7",
+        "type": "Activity",
+        "startedAt": "2026-08-27T10:00:00Z",
+        "roles": [
+          {
+            "role": "https://groundset.dev/terms/used",
+            "value": "urn:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          }
+        ],
+        "input": "urn:artifact:html",
+        "confidence": 0.98,
+        "extensions": {
+          "render": { "colorScheme": "light" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "schema-is-not-corpus-conformance",
+    "label": "Schema is not corpus conformance",
+    "question": "Can JSON Schema alone catch dangling references, duplicate identifiers, and references to the wrong record kind?",
+    "expected": { "schema": "pass", "corpus": "fail" },
+    "records": [
+      { "id": "urn:artifact:missing-source", "type": "Artifact" },
+      { "id": "urn:artifact:missing-source", "type": "Artifact" },
+      {
+        "id": "urn:sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "type": "Snapshot",
+        "artifact": "urn:agent:not-an-artifact",
+        "mediaType": "text/plain",
+        "byteLength": 5,
+        "content": "objects/sha256/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "acquiredAt": "2026-08-27T10:00:00Z"
+      },
+      { "id": "urn:agent:not-an-artifact", "type": "Agent" },
+      {
+        "id": "urn:collection:dangling",
+        "type": "Collection",
+        "members": ["urn:entity:does-not-exist"],
+        "attributedTo": ["urn:agent:not-an-artifact"]
+      }
+    ]
+  }
+]
