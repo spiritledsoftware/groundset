@@ -87,7 +87,122 @@ An attributed grouping assembled for a purpose. A multimodal example, review set
 
 ### Term
 
-A versioned vocabulary definition. A Term defines either a Category or a Relationship predicate. Terms have namespaced identifiers, labels, definitions, and optional validation rules for allowed subjects and objects.
+A versioned vocabulary definition. A Term defines either a Category or a Relationship predicate. Terms have namespaced identifiers, labels, and definitions. Vocabulary and extension profiles define any extra validation rules outside the core Term shape.
+
+## Canonical wire contract
+
+Groundset Canonical records use ordinary JSON validated by JSON Schema 2020-12. The schema has a versioned identifier. A Corpus release declares that schema once in its manifest; records do not repeat a schema version.
+
+Every record has this closed envelope:
+
+```json
+{
+  "id": "urn:entity:yagni",
+  "type": "Entity",
+  "extensions": {
+    "https://example.org/profile/v1": {}
+  }
+}
+```
+
+- `id` is an absolute URI or URN.
+- `type` is one of the eight Canonical record kinds.
+- Each record kind has a closed shape. Unknown fields are rejected.
+- `extensions` is optional. Every key is an absolute profile IRI, and that profile owns validation of its value.
+
+Semantic extension does not use `extensions`. Publishers define namespaced Terms and record attributed Assertions. Wire extension profiles are reserved for machine-facing data that the core record schema cannot represent.
+
+### Identifiers and references
+
+Record references are bare identifier strings. A string in a reusable value position always refers to a Canonical record; source strings use typed literals instead. Groundset does not wrap every reference in a `{ "ref": "..." }` object.
+
+Snapshot identifiers encode the digest of the exact captured bytes:
+
+```text
+urn:sha256:<64 lowercase hexadecimal characters>
+```
+
+The Snapshot does not repeat that digest in another field. The Corpus release manifest handles transfer-integrity metadata. A Snapshot keeps its content locator and upstream source locator separate from its immutable identifier.
+
+### Selections and typed literals
+
+A Snapshot selection contains the Snapshot identifier and one closed selector:
+
+```json
+{
+  "snapshot": "urn:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "selector": {
+    "type": "text-quote",
+    "exact": "Do not implement a capability until a concrete requirement needs it."
+  }
+}
+```
+
+The core selector profile defines text quote, text position, and byte range. A domain selector uses an absolute profile IRI as its type and places its profile-validated payload under `value`. Short custom selector names are rejected.
+
+A typed literal always records a scalar value and datatype. A language tag is valid only for a string; a unit is valid only for a number.
+
+```json
+{
+  "value": 21.4,
+  "datatype": "http://www.w3.org/2001/XMLSchema#decimal",
+  "unit": "https://example.org/unit/degree-celsius"
+}
+```
+
+JSON Schema checks those structural combinations. Datatype and unit meaning belongs to vocabulary and Corpus conformance rules.
+
+### Assertion contract
+
+An Assertion body is either a textual Claim or a semantic Relationship. Claim bodies require text and language. Relationship bodies use the shared record-reference, Snapshot-selection, and typed-literal value forms.
+
+Every Assertion requires:
+
+- at least one `attributedTo` Agent;
+- one `generatedBy` Activity.
+
+`scope` and `citations` are optional, but each must be nonempty when present. Their absence means that no Scope or citation was recorded. It never means universally applicable, verified, or true. Scope values may reference records or typed literals, but not source selections.
+
+### Activity contract
+
+An Activity records its start time and at least one role binding:
+
+```json
+{
+  "id": "urn:activity:render-example",
+  "type": "Activity",
+  "startedAt": "2026-08-27T10:00:00Z",
+  "roles": [
+    {
+      "role": "https://example.org/groundset/used",
+      "value": "urn:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "role": "https://example.org/render/viewportWidth",
+      "value": {
+        "value": 1280,
+        "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+        "unit": "https://example.org/unit/css-pixel"
+      }
+    }
+  ]
+}
+```
+
+Namespaced role bindings represent inputs, outputs, responsible Agents, methods, tools, and domain parameters without adding scenario-specific Activity fields. The core vocabulary defines reusable provenance roles. Domain profiles define parameter roles.
+
+### Validation boundary
+
+Groundset has two validation tiers:
+
+1. Record schema validation checks one Canonical record's closed structural shape.
+2. Corpus conformance checks identifier uniqueness, reference closure and referenced kinds, Snapshot digest-to-byte agreement, selector bounds, datatype semantics, time ordering, and Activity role semantics.
+
+JSON Schema cannot perform the second tier reliably. A record may pass its schema while belonging to a nonconforming Corpus.
+
+### JSON-LD projection
+
+Canonical records do not contain `@context`. Groundset may export a deterministic JSON-LD representation that wraps records in a published context and graph. The projection maps Groundset provenance, selector, and vocabulary concepts to standards such as PROV, Web Annotation, and SKOS without creating a second Canonical record shape.
 
 ## Reusable values
 
@@ -250,7 +365,8 @@ The first version will not define:
 
 - a universal domain ontology;
 - a universal Scope expression language;
-- the exact versioned JSON wire schema and conformance profiles;
+- the published schema URI and permanent vocabulary IRIs;
+- the complete Corpus conformance and extension-profile specifications;
 - corpus-boundary authorization and export-policy enforcement;
 - the repository and downloadable corpus-release format;
 - automatic semantic claim deduplication;

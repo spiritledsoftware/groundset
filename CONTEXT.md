@@ -44,6 +44,26 @@ _Avoid_: Fact, assertion
 A versioned vocabulary entry that defines a semantic Category or Relationship predicate.
 _Avoid_: Tag, concept
 
+**Canonical record**:
+One structurally validated unit in a canonical Corpus, identified as an Entity, Artifact, Snapshot, Assertion, Agent, Activity, Collection, or Term.
+_Avoid_: Knowledge object, evidence object
+
+**Record schema validation**:
+Validation of one Canonical record's structural shape, independent of the other records in its Corpus.
+_Avoid_: Corpus conformance, semantic validation
+
+**Corpus conformance**:
+Validation of rules spanning a Corpus, including identifier uniqueness, reference closure and kinds, source integrity, selector bounds, and provenance roles.
+_Avoid_: Record schema validation, truth validation
+
+**Wire extension profile**:
+A namespaced contract for additional machine-facing record data that the Groundset core does not define. Semantic additions use Terms and Assertions instead.
+_Avoid_: Custom field, vocabulary
+
+**JSON-LD projection**:
+An optional linked-data representation produced from Canonical records. It is not another accepted canonical record shape.
+_Avoid_: Canonical JSON, inline context
+
 **Category**:
 A Term that describes what an Entity, Artifact, Assertion, or other record is. Category membership is expressed by an Assertion.
 _Avoid_: Collection, structural kind, tag
