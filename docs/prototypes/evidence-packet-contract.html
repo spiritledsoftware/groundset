@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Groundset evidence packet contract, throwaway prototype</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        background: #f4f1e8;
+        color: #1c211d;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      button { color: inherit; font: inherit; }
+
+      header {
+        border-bottom: 2px solid #1c211d;
+        padding: 22px clamp(16px, 4vw, 48px);
+      }
+
+      header h1 { font-size: clamp(30px, 5vw, 58px); margin: 8px 0; max-width: 22ch; }
+      header p { line-height: 1.55; margin-bottom: 0; max-width: 84ch; }
+      .warning { color: #8b2c20; font-weight: 700; text-transform: uppercase; }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(280px, 350px) minmax(0, 1fr);
+        min-height: calc(100vh - 190px);
+      }
+
+      aside {
+        border-right: 2px solid #1c211d;
+        padding: 20px;
+      }
+
+      aside h2, .eyebrow, section h3 {
+        font-size: 12px;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+      }
+
+      .choice { border-top: 1px solid #1c211d; padding: 14px 0; }
+      .choice h3 { font-size: 13px; margin: 0 0 9px; }
+      .choice p { font-size: 12px; line-height: 1.45; margin: 8px 0 0; }
+      .choice-options { display: grid; gap: 6px; grid-template-columns: 1fr 1fr; }
+
+      button {
+        background: transparent;
+        border: 1px solid #1c211d;
+        cursor: pointer;
+        padding: 9px 10px;
+        text-align: left;
+      }
+
+      button:hover { background: #e5e0d3; }
+      button[aria-pressed="true"], button[aria-current="true"] {
+        background: #1c211d;
+        color: #fffdf6;
+      }
+
+      .reset { margin-top: 14px; width: 100%; }
+      article { min-width: 0; padding: clamp(18px, 4vw, 48px); }
+      article h2 { font-size: clamp(24px, 4vw, 42px); margin: 0 0 8px; }
+      article > p { line-height: 1.55; max-width: 84ch; }
+
+      .state-strip {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin: 22px 0;
+      }
+
+      .state-card { border: 1px solid #1c211d; padding: 11px; }
+      .state-card span { display: block; font-size: 11px; text-transform: uppercase; }
+      .state-card strong { display: block; margin-top: 5px; }
+
+      .verdict {
+        border: 2px solid currentColor;
+        line-height: 1.5;
+        margin: 20px 0;
+        padding: 14px 16px;
+      }
+
+      .verdict.good { color: #1f6b43; }
+      .verdict.warn { color: #8b4a10; }
+
+      .fixture-toolbar, .walkthrough-tabs, .walkthrough-steps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .fixture-toolbar { margin: 12px 0 18px; }
+      .fixture-toolbar button { padding: 7px 9px; }
+
+      .grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: minmax(260px, .8fr) minmax(0, 1.2fr);
+      }
+
+      section { border-top: 1px solid #1c211d; min-width: 0; }
+      section p, li { line-height: 1.5; }
+      ul { padding-left: 20px; }
+
+      .task-card, .packet-view, .omitted-view {
+        border: 1px solid #1c211d;
+        margin-bottom: 16px;
+        padding: 14px;
+      }
+
+      .task-card h4, .evidence-item h4 { font-size: 17px; margin: 0 0 8px; }
+      .task-card ol { margin-bottom: 0; padding-left: 22px; }
+      .packet-view { display: grid; gap: 12px; }
+      .evidence-item { background: #fffdf6; border: 1px solid #6d6a60; padding: 13px; }
+      .evidence-item p { margin: 7px 0; }
+      .evidence-item blockquote { border-left: 3px solid #174f90; margin: 10px 0; padding-left: 12px; }
+      .badge { border: 1px solid currentColor; display: inline-block; font-size: 11px; margin: 0 6px 5px 0; padding: 3px 6px; text-transform: uppercase; }
+      .answers { color: #1f6b43; }
+      .supports { color: #1f6b43; }
+      .contradicts { color: #8b2c20; }
+      .qualifies { color: #8b4a10; }
+      .context { color: #174f90; }
+
+      .mock-image {
+        align-items: center;
+        background: #dceafe;
+        border: 1px solid #5285bd;
+        display: flex;
+        height: 150px;
+        justify-content: center;
+        margin: 10px 0;
+      }
+
+      .mock-image div { background: #225ea8; color: white; padding: 11px 16px; }
+      .notice { background: #f2e4c9; border-left: 3px solid #8b4a10; padding: 10px 12px; }
+
+      pre {
+        background: #202720;
+        color: #eaf0e5;
+        font-size: 12px;
+        max-height: 700px;
+        overflow: auto;
+        padding: 16px;
+        white-space: pre-wrap;
+      }
+
+      .walkthroughs { margin-top: 28px; }
+      .walkthrough-tabs button { font-weight: 700; }
+      .walkthrough-copy { max-width: 82ch; }
+      .walkthrough-steps button.done { opacity: .45; text-decoration: line-through; }
+
+      footer {
+        background: #d7d2c5;
+        border-top: 2px solid #1c211d;
+        font-size: 12px;
+        line-height: 1.5;
+        padding: 10px clamp(16px, 4vw, 48px);
+      }
+
+      @media (max-width: 980px) {
+        main { display: block; }
+        aside { border-bottom: 2px solid #1c211d; border-right: 0; }
+        .state-strip, .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="warning">Throwaway decision prototype</div>
+      <h1>What should a model receive from Groundset?</h1>
+      <p>
+        This prototype tests one question: can a small, model-neutral packet carry the material,
+        provenance, disagreement, limits, and next questions needed for a task without becoming a
+        retrieval dump? Change the disputed choices, then push the packet through six awkward cases.
+      </p>
+    </header>
+
+    <main>
+      <aside>
+        <h2>Free play: disputed choices</h2>
+        <div id="choices"></div>
+        <button class="reset" id="reset">Reset to recommendations</button>
+      </aside>
+
+      <article>
+        <div class="eyebrow">Current packet</div>
+        <h2 id="fixture-title"></h2>
+        <p id="fixture-summary"></p>
+        <div class="state-strip" id="state-strip"></div>
+        <div class="verdict" id="verdict"></div>
+
+        <section>
+          <h3>Stress case</h3>
+          <div class="fixture-toolbar" id="fixture-buttons"></div>
+        </section>
+
+        <div class="grid">
+          <section>
+            <h3>What the model sees</h3>
+            <div class="task-card" id="task-card"></div>
+            <div class="packet-view" id="packet-view"></div>
+            <div class="omitted-view" id="omitted-view"></div>
+          </section>
+
+          <section>
+            <h3>Portable JSON</h3>
+            <pre id="packet-json" tabindex="0"></pre>
+          </section>
+        </div>
+
+        <section class="walkthroughs">
+          <h3>Guided walkthroughs</h3>
+          <div class="walkthrough-tabs" id="walkthrough-tabs"></div>
+          <p class="walkthrough-copy" id="walkthrough-copy"></p>
+          <div class="walkthrough-steps" id="walkthrough-steps"></div>
+        </section>
+      </article>
+    </main>
+
+    <footer id="footer-state"></footer>
+
+    <script>
+      const PacketPrototype = (() => {
+        const recommended = Object.freeze({
+          request: "needs",
+          material: "presentation",
+          bearing: "per-need",
+          disagreement: "preserve",
+          insufficiency: "gaps",
+          format: "typed-json",
+        });
+
+        const choices = [
+          {
+            id: "request",
+            title: "Describe the task",
+            recommended: "needs",
+            options: [
+              { value: "needs", label: "Task + needs" },
+              { value: "query", label: "Query string" },
+            ],
+            note: "Named needs let every item say what it bears on.",
+          },
+          {
+            id: "material",
+            title: "Deliver material",
+            recommended: "presentation",
+            options: [
+              { value: "presentation", label: "Usable parts" },
+              { value: "records", label: "Raw records" },
+            ],
+            note: "Models need excerpts, images, and data, not a corpus join exercise.",
+          },
+          {
+            id: "bearing",
+            title: "Explain relevance",
+            recommended: "per-need",
+            options: [
+              { value: "per-need", label: "Bearing per need" },
+              { value: "score", label: "Ranking score" },
+            ],
+            note: "A score orders candidates. It does not explain what they support.",
+          },
+          {
+            id: "disagreement",
+            title: "Handle disagreement",
+            recommended: "preserve",
+            options: [
+              { value: "preserve", label: "Keep positions" },
+              { value: "winner", label: "Pick a winner" },
+            ],
+            note: "Grounding should expose the conflict, not manufacture consensus.",
+          },
+          {
+            id: "insufficiency",
+            title: "Handle missing support",
+            recommended: "gaps",
+            options: [
+              { value: "gaps", label: "Gaps + follow-ups" },
+              { value: "pad", label: "Fill the packet" },
+            ],
+            note: "An honest gap is useful. More weak context is not.",
+          },
+          {
+            id: "format",
+            title: "Cross model boundary",
+            recommended: "typed-json",
+            options: [
+              { value: "typed-json", label: "Typed JSON" },
+              { value: "prompt", label: "Prompt text" },
+            ],
+            note: "Thin adapters can turn one typed packet into each model's native parts.",
+          },
+        ];
+
+        const selection = (snapshot, selector) => ({ snapshot, selector });
+        const textPart = (text, language = "en") => ({ type: "text", text, language });
+        const dataPart = (value) => ({ type: "data", mediaType: "application/json", value });
+        const imagePart = (source, href, integrity, byteLength, alt) => ({
+          type: "image",
+          mediaType: "image/png",
+          source,
+          delivery: {
+            type: "packet-relative",
+            href,
+            integrity,
+            byteLength,
+          },
+          fallback: textPart(alt),
+        });
+
+        const fixtures = [
+          {
+            id: "tailwind",
+            label: "Multimodal",
+            title: "Tailwind centers a div",
+            summary: "Source code, a rendering, and measured geometry must travel together without pasting the whole project into context.",
+            task: "Explain how the example centers the blue div and whether the supplied rendering confirms it.",
+            needs: [
+              { id: "need:mechanism", kind: "question", question: "Which classes perform the centering?" },
+              { id: "need:result", kind: "question", question: "Does the rendered result show centering in the recorded environment?" },
+            ],
+            items: [
+              {
+                id: "ev:html",
+                title: "Exact HTML excerpt",
+                presentationRole: "source-excerpt",
+                source: {
+                  assertion: "urn:assertion:tailwind-centering-classes",
+                  citations: [selection("urn:sha256:1111111111111111111111111111111111111111111111111111111111111111", { type: "text-quote", exact: "flex items-center justify-center" })],
+                  attributedTo: ["urn:agent:tailwind-example-author"],
+                  generatedBy: "urn:activity:record-tailwind-centering-classes",
+                },
+                parts: [textPart('<main class="flex min-h-screen items-center justify-center">\n  <div class="bg-blue-700 p-4 text-white">Centered</div>\n</main>')],
+                bearing: [{ need: "need:mechanism", relation: "answers", why: "The selected class list names both-axis flex alignment." }],
+                scope: { matches: ["Tailwind CSS 4.1", "Chromium 136", "1280 x 720 CSS px"], unknown: [] },
+              },
+              {
+                id: "ev:render",
+                title: "Rendered output",
+                presentationRole: "rendered-image",
+                source: {
+                  artifact: "urn:artifact:tailwind-center-render",
+                  selection: selection("urn:sha256:2222222222222222222222222222222222222222222222222222222222222222", { type: "https://example.org/selector/image-region/v1", value: { x: 0, y: 0, width: 1280, height: 720 } }),
+                  generatedBy: "urn:activity:render-tailwind-example",
+                },
+                parts: [
+                  imagePart(
+                    selection("urn:sha256:2222222222222222222222222222222222222222222222222222222222222222", { type: "https://example.org/selector/image-region/v1", value: { x: 0, y: 0, width: 1280, height: 720 } }),
+                    "objects/sha256/2222222222222222222222222222222222222222222222222222222222222222",
+                    "sha256-2222222222222222222222222222222222222222222222222222222222222222",
+                    28431,
+                    "Blue box centered in a pale viewport",
+                  ),
+                ],
+                bearing: [{ need: "need:result", relation: "answers", why: "The recorded image places the target at the viewport center." }],
+                scope: { matches: ["Tailwind CSS 4.1", "Chromium 136", "1280 x 720 CSS px"], unknown: ["Responsive behavior at other viewport sizes"] },
+              },
+              {
+                id: "ev:measurements",
+                title: "Measured layout geometry",
+                presentationRole: "measurement",
+                source: {
+                  assertion: "urn:assertion:tailwind-render-center-measurement",
+                  citations: [selection("urn:sha256:2222222222222222222222222222222222222222222222222222222222222222", { type: "https://example.org/selector/image-region/v1", value: { x: 0, y: 0, width: 1280, height: 720 } })],
+                  attributedTo: ["urn:agent:layout-measurement-tool"],
+                  generatedBy: "urn:activity:measure-tailwind-render",
+                },
+                parts: [dataPart({ viewport: [1280, 720], targetCenter: [640, 360], measuredCenter: [640, 360], unit: "css-pixel" })],
+                bearing: [{ need: "need:result", relation: "answers", why: "The measured target center equals the viewport center." }],
+                scope: { matches: ["Tailwind CSS 4.1", "Chromium 136", "1280 x 720 CSS px"], unknown: ["Responsive behavior at other viewport sizes"] },
+              },
+            ],
+            gaps: [],
+            conflicts: [],
+            followUps: [
+              { id: "followup:mobile", type: "derive", need: "need:result", question: "Check the same example at a 390 x 844 viewport.", reason: "The packet only demonstrates one recorded viewport.", request: { activity: "render", viewport: { width: 390, height: 844, unit: "css-pixel" } } },
+            ],
+            omitted: { routine: 11, explanation: "Duplicate renders and general flexbox pages were less direct.", sensitive: false },
+          },
+          {
+            id: "yagni",
+            label: "Abstract idea",
+            title: "YAGNI meets a plugin abstraction",
+            summary: "An abstract concept needs definitions, indicators, and exceptions. A single dictionary sentence will not help with a design decision.",
+            task: "Should this team add a plugin interface before any second plugin exists? Use YAGNI as decision guidance, not as an absolute rule.",
+            needs: [
+              { id: "need:meaning", kind: "question", question: "What does YAGNI advise?" },
+              { id: "need:apply", kind: "question", question: "Which facts make it applicable here?" },
+              { id: "need:exception", kind: "question", question: "What would justify the seam now?" },
+            ],
+            items: [
+              {
+                id: "ev:definition-a",
+                title: "Definition recorded by source A",
+                presentationRole: "concept-definition",
+                source: {
+                  assertion: "urn:assertion:yagni-definition-a",
+                  citations: [selection("urn:sha256:3333333333333333333333333333333333333333333333333333333333333333", { type: "text-quote", exact: "Implement things when you actually need them, never when you just foresee that you need them." })],
+                  attributedTo: ["urn:agent:source-a"],
+                  generatedBy: "urn:activity:record-yagni-definition-a",
+                },
+                parts: [textPart("Implement things when you actually need them, never when you just foresee that you need them.")],
+                bearing: [{ need: "need:meaning", relation: "answers", why: "It states the heuristic's deferral rule." }],
+                scope: { matches: ["Speculative software capability"], unknown: [] },
+              },
+              {
+                id: "ev:indicator",
+                title: "Problem pattern",
+                presentationRole: "concept-indicator",
+                source: {
+                  assertion: "urn:assertion:yagni-single-implementation-indicator",
+                  citations: [selection("urn:sha256:4444444444444444444444444444444444444444444444444444444444444444", { type: "text-quote", exact: "A general interface with one implementation often encodes guesses about a future that has not arrived." })],
+                  attributedTo: ["urn:agent:engineering-guide"],
+                  generatedBy: "urn:activity:record-yagni-indicator",
+                },
+                parts: [textPart("A general interface with one implementation often encodes guesses about a future that has not arrived.")],
+                bearing: [{ need: "need:apply", relation: "answers", why: "The current design has one implementation and no committed second use." }],
+                scope: { matches: ["One implementation", "No scheduled second plugin"], unknown: ["Cost of changing the public API later"] },
+              },
+              {
+                id: "ev:exception",
+                title: "Exception from the team's compatibility policy",
+                presentationRole: "concept-exception",
+                source: {
+                  assertion: "urn:assertion:public-extension-seam-policy",
+                  citations: [selection("urn:sha256:5555555555555555555555555555555555555555555555555555555555555555", { type: "text-quote", exact: "Published extension points require a compatibility seam before the first release." })],
+                  attributedTo: ["urn:agent:example-team"],
+                  generatedBy: "urn:activity:record-public-extension-policy",
+                },
+                parts: [textPart("Published extension points require a compatibility seam before the first release.")],
+                bearing: [{ need: "need:exception", relation: "qualifies", why: "A hard-to-change public contract can justify design work before a second implementation." }],
+                scope: { matches: [], unknown: ["Whether this plugin interface is public in the first release"] },
+              },
+            ],
+            gaps: [{ need: "need:exception", reason: "The task does not say whether third parties receive the plugin API." }],
+            conflicts: [],
+            followUps: [
+              { id: "followup:public-api", type: "clarify-task", need: "need:exception", question: "Will the first release expose this plugin API to third parties?", reason: "That fact decides whether the compatibility exception applies.", request: { field: "task.constraints.publicApi" } },
+            ],
+            omitted: { routine: 19, explanation: "Near-duplicate definitions were omitted after preserving one definition, one indicator, and one relevant exception.", sensitive: false },
+          },
+          {
+            id: "version",
+            label: "Version conflict",
+            title: "A security range was corrected",
+            summary: "A later advisory widens the affected range. The packet must retain the original position while making the correction impossible to miss.",
+            task: "Is Acme Parser 3.4 affected by advisory ADV-204?",
+            needs: [
+              { id: "need:affected", kind: "proposition", proposition: "Acme Parser 3.4 is affected by advisory ADV-204." },
+              { id: "need:current", kind: "question", question: "Which advisory statement is current?" },
+            ],
+            items: [
+              {
+                id: "ev:original-advisory",
+                title: "Original advisory",
+                presentationRole: "superseded-position",
+                source: {
+                  assertion: "urn:assertion:adv-204-original-range",
+                  citations: [selection("urn:sha256:6666666666666666666666666666666666666666666666666666666666666666", { type: "text-quote", exact: "Affected versions: >= 3.0 and < 3.4" })],
+                  attributedTo: ["urn:agent:acme-security-team"],
+                  generatedBy: "urn:activity:record-adv-204-original",
+                },
+                parts: [textPart("Affected versions: >= 3.0 and < 3.4")],
+                bearing: [{ need: "need:affected", relation: "contradicts", why: "This range excludes 3.4, but a later correction supersedes it." }],
+                scope: { matches: ["Acme Parser"], unknown: [] },
+              },
+              {
+                id: "ev:corrected-advisory",
+                title: "Corrected advisory",
+                presentationRole: "superseding-position",
+                source: {
+                  assertion: "urn:assertion:adv-204-corrected-range",
+                  citations: [selection("urn:sha256:7777777777777777777777777777777777777777777777777777777777777777", { type: "text-quote", exact: "Correction: affected versions are >= 3.0 and < 3.4.1." })],
+                  attributedTo: ["urn:agent:acme-security-team"],
+                  generatedBy: "urn:activity:record-adv-204-correction",
+                },
+                parts: [textPart("Correction: affected versions are >= 3.0 and < 3.4.1.")],
+                bearing: [
+                  { need: "need:affected", relation: "supports", why: "The corrected range includes 3.4." },
+                  { need: "need:current", relation: "answers", why: "The correction explicitly supersedes the original range." },
+                ],
+                scope: { matches: ["Acme Parser 3.4"], unknown: [] },
+              },
+            ],
+            gaps: [],
+            conflicts: [{ id: "conflict:range", need: "need:affected", positions: [{ statement: "Version 3.4 is not affected.", evidence: ["ev:original-advisory"] }, { statement: "Version 3.4 is affected.", evidence: ["ev:corrected-advisory"] }], state: "resolved-by-supersession", explanation: "The statements disagree, and the publisher marked the second as a correction." }],
+            followUps: [],
+            omitted: { routine: 7, explanation: "Mirrors and summaries did not add a newer publisher statement.", sensitive: false },
+          },
+          {
+            id: "retraction",
+            label: "Retraction",
+            title: "A study was retracted",
+            summary: "The source still exists and still says what it said. The packet must show why it should not carry the conclusion alone.",
+            task: "Can Study Delta support recommending treatment Z?",
+            needs: [
+              { id: "need:finding", kind: "question", question: "What result did Study Delta report?" },
+              { id: "need:standing", kind: "proposition", proposition: "Study Delta is fit to support recommending treatment Z." },
+            ],
+            items: [
+              {
+                id: "ev:study",
+                title: "Published study result",
+                presentationRole: "reported-result",
+                source: {
+                  assertion: "urn:assertion:study-delta-result",
+                  citations: [selection("urn:sha256:8888888888888888888888888888888888888888888888888888888888888888", { type: "text-quote", exact: "Treatment Z reduced the measured symptom score by 18 percent." })],
+                  attributedTo: ["urn:agent:study-delta-authors"],
+                  generatedBy: "urn:activity:record-study-delta-result",
+                },
+                parts: [textPart("Treatment Z reduced the measured symptom score by 18 percent.")],
+                bearing: [{ need: "need:finding", relation: "answers", why: "This is the result the study reported." }],
+                scope: { matches: ["Study Delta population and protocol"], unknown: ["Generalization beyond the study"] },
+              },
+              {
+                id: "ev:retraction",
+                title: "Publisher retraction notice",
+                presentationRole: "retraction",
+                source: {
+                  assertion: "urn:assertion:study-delta-retracted",
+                  citations: [selection("urn:sha256:9999999999999999999999999999999999999999999999999999999999999999", { type: "text-quote", exact: "The publisher retracts this article because the primary outcome data could not be verified." })],
+                  attributedTo: ["urn:agent:journal-publisher"],
+                  generatedBy: "urn:activity:record-study-delta-retraction",
+                },
+                parts: [textPart("The publisher retracts this article because the primary outcome data could not be verified.")],
+                bearing: [{ need: "need:standing", relation: "contradicts", why: "The retraction removes the study's standing as verified support." }],
+                scope: { matches: ["Study Delta"], unknown: [] },
+              },
+            ],
+            gaps: [{ need: "need:standing", reason: "No independent replication is present in the selected material." }],
+            conflicts: [{ id: "conflict:study-standing", need: "need:standing", positions: [{ statement: "The published result can support the recommendation.", evidence: ["ev:study"] }, { statement: "The article cannot support the recommendation because its primary outcome data could not be verified.", evidence: ["ev:retraction"] }], state: "unresolved-for-conclusion", explanation: "The historical result remains traceable, but the retraction defeats reliance on it by itself." }],
+            followUps: [
+              { id: "followup:replication", type: "retrieve", need: "need:standing", question: "Find independent studies of treatment Z using a comparable outcome measure.", reason: "The retracted paper cannot establish the recommendation alone.", request: { concepts: ["treatment Z"], relation: "independent-replication", comparableOutcome: true } },
+            ],
+            omitted: { routine: 4, explanation: "News summaries were omitted in favor of the study and publisher notice.", sensitive: false },
+          },
+          {
+            id: "restricted",
+            label: "Restricted source",
+            title: "A public aggregate came from private rows",
+            summary: "An explicit publication Activity moved an approved aggregate into this public Corpus. The private rows never entered this boundary or its candidate set.",
+            task: "State the published median recovery time for the service in July.",
+            needs: [{ id: "need:median", kind: "question", question: "What median recovery time was approved for publication?" }],
+            items: [
+              {
+                id: "ev:published-kpi",
+                title: "Approved public KPI",
+                presentationRole: "published-aggregate",
+                source: {
+                  assertion: "urn:assertion:published-july-recovery-median",
+                  citations: [selection("urn:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", { type: "text-quote", exact: "July median recovery time: 41 minutes." })],
+                  attributedTo: ["urn:agent:service-operations"],
+                  generatedBy: "urn:activity:publish-july-recovery-median",
+                },
+                parts: [textPart("July median recovery time: 41 minutes.")],
+                bearing: [{ need: "need:median", relation: "answers", why: "This is the aggregate approved for external use." }],
+                scope: { matches: ["July", "Published service KPI"], unknown: ["Distribution of individual recovery times"] },
+              },
+            ],
+            gaps: [],
+            conflicts: [],
+            followUps: [],
+            omitted: { routine: 0, explanation: "Private rows are not candidates because they remain in another Corpus boundary.", sensitive: true },
+          },
+          {
+            id: "missing",
+            label: "Missing answer",
+            title: "A survey detected no frogs",
+            summary: "No detections in one survey are evidence about the survey result, not proof that no frogs were present.",
+            task: "Were frogs present at Site Beta in May?",
+            needs: [
+              { id: "need:detection", kind: "question", question: "Did the May survey detect frogs?" },
+              { id: "need:presence", kind: "question", question: "Does the survey establish whether frogs were present?" },
+            ],
+            items: [
+              {
+                id: "ev:survey",
+                title: "May acoustic survey",
+                presentationRole: "negative-observation",
+                source: {
+                  assertion: "urn:assertion:site-beta-no-detections",
+                  citations: [selection("urn:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", { type: "https://example.org/selector/dataset-row/v1", value: { row: 17, columns: ["site", "period", "detections", "device"] } })],
+                  attributedTo: ["urn:agent:wetland-survey-team"],
+                  generatedBy: "urn:activity:record-site-beta-survey",
+                },
+                parts: [dataPart({ site: "Beta", period: "May", detections: 0, device: "Recorder R7", activeHours: 18 })],
+                bearing: [
+                  { need: "need:detection", relation: "answers", why: "The selected survey row records zero detections." },
+                  { need: "need:presence", relation: "qualifies", why: "A finite acoustic sample cannot establish absence without a detection model." },
+                ],
+                scope: { matches: ["Site Beta", "May", "18 active recording hours"], unknown: ["Detection probability", "Recorder downtime outside active hours"] },
+              },
+            ],
+            gaps: [{ need: "need:presence", reason: "No detection-probability estimate or independent observation is available." }],
+            conflicts: [],
+            followUps: [
+              { id: "followup:detection-model", type: "retrieve", need: "need:presence", question: "Retrieve the survey's detection model and recorder coverage for Site Beta.", reason: "Those inputs are needed to distinguish no detections from evidence of absence.", request: { site: "urn:site:beta", period: "May", required: ["detection-model", "recorder-coverage"] } },
+            ],
+            omitted: { routine: 15, explanation: "Observations from other sites and months do not answer the scoped question.", sensitive: false },
+          },
+        ];
+
+        const initialState = () => ({
+          policy: { ...recommended },
+          fixture: fixtures[0].id,
+          walkthrough: "packet",
+          completedSteps: [],
+        });
+
+        const selectedFixture = (state) => fixtures.find((fixture) => fixture.id === state.fixture);
+
+        const buildPacket = (state) => {
+          const fixture = selectedFixture(state);
+          const groundingActivity = `urn:activity:ground-${fixture.id}`;
+          const hasUnresolvedConflict = fixture.conflicts.some((conflict) => conflict.state !== "resolved-by-supersession");
+          const packet = {
+            schema: "https://example.org/groundset/evidence-packet/v1",
+            id: `urn:uuid:prototype-${fixture.id}`,
+            grounding: {
+              activity: groundingActivity,
+              policy: "https://example.org/grounding-policy/v1",
+              groundedAt: "2026-08-27T15:00:00Z",
+              corpus: ["urn:groundset-corpus:prototype@1"],
+            },
+            task: state.policy.request === "needs"
+              ? { text: fixture.task, needs: fixture.needs }
+              : fixture.task,
+            status: {
+              coverage: fixture.gaps.length ? "partial" : "complete",
+              disagreement: hasUnresolvedConflict ? "unresolved" : fixture.conflicts.length ? "resolved" : "none",
+            },
+            evidence: fixture.items.map((item, index) => {
+              if (state.policy.material === "records") {
+                return {
+                  id: item.id,
+                  canonicalRecords: [item.source.assertion || item.source.artifact, ...(item.source.citations || []).map((citation) => citation.snapshot)].filter(Boolean),
+                  score: 0.94 - index * 0.07,
+                };
+              }
+
+              const evidence = {
+                id: item.id,
+                label: item.title,
+                presentationRole: item.presentationRole,
+                source: item.source,
+                parts: item.parts,
+                applicability: {
+                  satisfied: item.scope.matches,
+                  violated: [],
+                  unknown: item.scope.unknown,
+                  assessedBy: groundingActivity,
+                },
+              };
+
+              if (state.policy.bearing === "per-need") evidence.bearing = item.bearing;
+              else evidence.score = 0.94 - index * 0.07;
+              return evidence;
+            }),
+          };
+
+          packet.budget = {
+            applied: { maxEvidenceItems: 8, maxTextCharacters: 12000, maxMediaBytes: 2097152 },
+            evidenceItems: packet.evidence.length,
+            truncated: false,
+          };
+
+          if (state.policy.request === "needs") {
+            packet.coverage = fixture.needs.map((need) => {
+              const evidence = fixture.items
+                .filter((item) => item.bearing.some((bearing) => bearing.need === need.id))
+                .map((item) => item.id);
+              const conflict = fixture.conflicts.find((candidate) => candidate.need === need.id && candidate.state !== "resolved-by-supersession");
+              const gap = fixture.gaps.find((candidate) => candidate.need === need.id);
+              return {
+                need: need.id,
+                coverage: gap ? "partial" : evidence.length ? "covered" : "uncovered",
+                disagreement: conflict ? "unresolved" : "none",
+                evidence,
+              };
+            });
+          }
+
+          if (state.policy.disagreement === "preserve" && fixture.conflicts.length) {
+            packet.conflicts = fixture.conflicts;
+          } else if (state.policy.disagreement === "winner" && fixture.conflicts.length) {
+            packet.selectedConclusion = {
+              text: fixture.id === "version" ? "Version 3.4 is affected." : "Do not rely on Study Delta.",
+              chosenBy: "grounding-ranker",
+            };
+            packet.evidence = packet.evidence.slice(-1);
+          }
+
+          if (state.policy.insufficiency === "gaps") {
+            if (fixture.gaps.length) packet.gaps = fixture.gaps;
+            if (fixture.followUps.length) {
+              packet.followUps = fixture.followUps.map((followUp) => ({
+                ...followUp,
+                continuation: `opaque:${fixture.id}:${followUp.id}`,
+              }));
+            }
+          } else if (fixture.gaps.length) {
+            packet.evidence.push({ id: "ev:weak-extra", score: 0.31, parts: [textPart("A loosely related search result was added to fill the remaining packet slot.")] });
+            packet.status.coverage = "complete";
+          }
+
+          packet.budget.evidenceItems = packet.evidence.length;
+
+          if (state.policy.format === "prompt") {
+            return {
+              prompt: [
+                `TASK: ${fixture.task}`,
+                ...packet.evidence.map((evidence, index) => `SOURCE ${index + 1}: ${JSON.stringify(evidence)}`),
+                ...(packet.gaps || []).map((gap) => `WARNING: ${gap.reason}`),
+              ].join("\n\n"),
+            };
+          }
+
+          return packet;
+        };
+
+        const assess = (state) => {
+          const departures = choices.filter((choice) => state.policy[choice.id] !== choice.recommended);
+          const problems = [];
+          if (state.policy.request === "query") problems.push("Evidence cannot name the exact need it addresses.");
+          if (state.policy.material === "records") problems.push("The model receives identifiers and must reconstruct usable material.");
+          if (state.policy.bearing === "score") problems.push("Ranking scores replace task-specific explanations.");
+          if (state.policy.disagreement === "winner") problems.push("Grounding hides a source position and makes its own conclusion authoritative.");
+          if (state.policy.insufficiency === "pad") problems.push("Weak material masks an unresolved gap.");
+          if (state.policy.format === "prompt") problems.push("One prompt layout becomes the contract, so adapters cannot preserve native media and structure.");
+          return {
+            portable: state.policy.format === "typed-json",
+            traceable: state.policy.material === "presentation" && state.policy.bearing === "per-need",
+            honest: state.policy.disagreement === "preserve" && state.policy.insufficiency === "gaps",
+            departures: departures.length,
+            problems,
+          };
+        };
+
+        const reduce = (state, action) => {
+          if (action.type === "reset") return initialState();
+          if (action.type === "choose") return { ...state, policy: { ...state.policy, [action.choice]: action.value } };
+          if (action.type === "fixture") return { ...state, fixture: action.fixture, completedSteps: [] };
+          if (action.type === "walkthrough") return { ...initialState(), walkthrough: action.walkthrough };
+          if (action.type === "step") {
+            const next = reduce(state, action.action);
+            return { ...next, walkthrough: state.walkthrough, completedSteps: [...state.completedSteps, action.index] };
+          }
+          return state;
+        };
+
+        return { recommended, choices, fixtures, initialState, selectedFixture, buildPacket, assess, reduce };
+      })();
+
+      const walkthroughs = [
+        {
+          id: "packet",
+          label: "Small packet",
+          copy: "Start with the recommended contract, then compare it with raw records and score-only ranking. The useful packet carries ready-to-use material and says what each item bears on.",
+          steps: [
+            { label: "Show Tailwind packet", action: { type: "fixture", fixture: "tailwind" } },
+            { label: "Send raw records", action: { type: "choose", choice: "material", value: "records" } },
+            { label: "Replace reasons with scores", action: { type: "choose", choice: "bearing", value: "score" } },
+          ],
+        },
+        {
+          id: "concept",
+          label: "Abstract guidance",
+          copy: "YAGNI is useful only when the packet includes an indicator, an exception, and the unresolved fact that decides applicability. Watch what happens when gaps are hidden.",
+          steps: [
+            { label: "Open YAGNI case", action: { type: "fixture", fixture: "yagni" } },
+            { label: "Hide the gap", action: { type: "choose", choice: "insufficiency", value: "pad" } },
+            { label: "Restore focused follow-up", action: { type: "choose", choice: "insufficiency", value: "gaps" } },
+          ],
+        },
+        {
+          id: "conflict",
+          label: "Disagreement",
+          copy: "A packet can mark a conflict as unresolved or resolved by explicit supersession. Grounding still preserves both positions. Choosing a winner discards the audit trail the model needs.",
+          steps: [
+            { label: "Open corrected advisory", action: { type: "fixture", fixture: "version" } },
+            { label: "Make ranking pick a winner", action: { type: "choose", choice: "disagreement", value: "winner" } },
+            { label: "Preserve both positions", action: { type: "choose", choice: "disagreement", value: "preserve" } },
+            { label: "Open unresolved retraction", action: { type: "fixture", fixture: "retraction" } },
+          ],
+        },
+        {
+          id: "boundary",
+          label: "Restricted source",
+          copy: "The private rows never enter this public Corpus boundary. An explicit publication Activity creates the approved aggregate that Grounding can select. The packet needs no private pointers or withholding notice.",
+          steps: [
+            { label: "Open restricted case", action: { type: "fixture", fixture: "restricted" } },
+            { label: "Inspect portable JSON", action: { type: "choose", choice: "format", value: "typed-json" } },
+          ],
+        },
+      ];
+
+      let state = PacketPrototype.initialState();
+
+      const dispatch = (action) => {
+        state = PacketPrototype.reduce(state, action);
+        render();
+      };
+
+      const relationClass = (relation) => ["answers", "supports", "contradicts", "qualifies", "context"].includes(relation) ? relation : "context";
+
+      const renderChoices = () => {
+        const root = document.getElementById("choices");
+        root.innerHTML = "";
+        PacketPrototype.choices.forEach((choice) => {
+          const section = document.createElement("section");
+          section.className = "choice";
+          const title = document.createElement("h3");
+          title.textContent = choice.title;
+          const options = document.createElement("div");
+          options.className = "choice-options";
+          choice.options.forEach((option) => {
+            const button = document.createElement("button");
+            button.textContent = option.label;
+            button.setAttribute("aria-pressed", String(state.policy[choice.id] === option.value));
+            button.addEventListener("click", () => dispatch({ type: "choose", choice: choice.id, value: option.value }));
+            options.appendChild(button);
+          });
+          const note = document.createElement("p");
+          note.textContent = choice.note;
+          section.append(title, options, note);
+          root.appendChild(section);
+        });
+      };
+
+      const renderFixtureButtons = () => {
+        const root = document.getElementById("fixture-buttons");
+        root.innerHTML = "";
+        PacketPrototype.fixtures.forEach((fixture) => {
+          const button = document.createElement("button");
+          button.textContent = fixture.label;
+          button.setAttribute("aria-current", String(fixture.id === state.fixture));
+          button.addEventListener("click", () => dispatch({ type: "fixture", fixture: fixture.id }));
+          root.appendChild(button);
+        });
+      };
+
+      const renderTask = (fixture) => {
+        const root = document.getElementById("task-card");
+        root.innerHTML = "";
+        const title = document.createElement("h4");
+        title.textContent = "Task";
+        const task = document.createElement("p");
+        task.textContent = fixture.task;
+        root.append(title, task);
+        if (state.policy.request === "needs") {
+          const list = document.createElement("ol");
+          fixture.needs.forEach((need) => {
+            const item = document.createElement("li");
+            item.textContent = need.question || `Proposition to test: ${need.proposition}`;
+            list.appendChild(item);
+          });
+          root.appendChild(list);
+        }
+      };
+
+      const renderPart = (part, root) => {
+        if (part.type === "text") {
+          const quote = document.createElement("blockquote");
+          quote.textContent = part.text;
+          root.appendChild(quote);
+        } else if (part.type === "data") {
+          const pre = document.createElement("pre");
+          pre.textContent = JSON.stringify(part.value, null, 2);
+          root.appendChild(pre);
+        } else if (part.type === "image") {
+          const image = document.createElement("div");
+          image.className = "mock-image";
+          image.innerHTML = "<div>Centered</div>";
+          image.setAttribute("role", "img");
+          image.setAttribute("aria-label", part.fallback.text);
+          root.appendChild(image);
+        }
+      };
+
+      const renderPacketView = (fixture, packet) => {
+        const root = document.getElementById("packet-view");
+        root.innerHTML = "";
+        if (state.policy.format === "prompt") {
+          const item = document.createElement("div");
+          item.className = "evidence-item";
+          const title = document.createElement("h4");
+          title.textContent = "Preformatted prompt";
+          const text = document.createElement("p");
+          text.textContent = "The prompt contains flattened JSON. Native image delivery and typed follow-up controls are lost.";
+          item.append(title, text);
+          root.appendChild(item);
+          return;
+        }
+
+        packet.evidence.forEach((evidence) => {
+          const original = fixture.items.find((item) => item.id === evidence.id);
+          const item = document.createElement("div");
+          item.className = "evidence-item";
+          const title = document.createElement("h4");
+          title.textContent = original ? original.title : "Weak extra result";
+          item.appendChild(title);
+
+          if (evidence.presentationRole) {
+            const role = document.createElement("span");
+            role.className = "badge context";
+            role.textContent = evidence.presentationRole;
+            item.appendChild(role);
+          }
+
+          if (evidence.canonicalRecords) {
+            const message = document.createElement("p");
+            message.textContent = `Raw references only: ${evidence.canonicalRecords.join(", ")}`;
+            item.appendChild(message);
+          }
+
+          (evidence.parts || []).forEach((part) => renderPart(part, item));
+          (evidence.bearing || []).forEach((bearing) => {
+            const badge = document.createElement("span");
+            badge.className = `badge ${relationClass(bearing.relation)}`;
+            badge.textContent = bearing.relation;
+            const why = document.createElement("p");
+            why.textContent = bearing.why;
+            item.append(badge, why);
+          });
+
+          if (typeof evidence.score === "number") {
+            const score = document.createElement("p");
+            score.textContent = `Retrieval score: ${evidence.score.toFixed(2)}`;
+            item.appendChild(score);
+          }
+
+          root.appendChild(item);
+        });
+
+        (packet.conflicts || []).forEach((conflict) => {
+          const notice = document.createElement("div");
+          notice.className = "notice";
+          notice.textContent = `Conflict: ${conflict.explanation}`;
+          root.appendChild(notice);
+        });
+
+        (packet.gaps || []).forEach((gap) => {
+          const notice = document.createElement("div");
+          notice.className = "notice";
+          notice.textContent = `Gap: ${gap.reason}`;
+          root.appendChild(notice);
+        });
+
+        (packet.followUps || []).forEach((followUp) => {
+          const notice = document.createElement("div");
+          notice.className = "notice";
+          const label = document.createElement("p");
+          label.textContent = `Focused follow-up: ${followUp.reason}`;
+          const button = document.createElement("button");
+          button.textContent = followUp.question;
+          button.title = `Send ${followUp.id} with the packet's opaque continuation.`;
+          notice.append(label, button);
+          root.appendChild(notice);
+        });
+      };
+
+      const renderOmitted = (fixture, packet) => {
+        const root = document.getElementById("omitted-view");
+        root.innerHTML = "";
+        const title = document.createElement("h4");
+        title.textContent = "Prototype note, not sent to the model";
+        root.appendChild(title);
+        const note = document.createElement("p");
+        note.textContent = fixture.omitted.sensitive
+          ? "The private rows belong to another Corpus boundary and were never candidates. Only an explicitly published aggregate exists in this packet's public Corpus."
+          : `${fixture.omitted.routine} routine candidates stay outside the packet with no listing or count in the JSON. ${fixture.omitted.explanation}`;
+        root.appendChild(note);
+      };
+
+      const renderWalkthroughs = () => {
+        const tabs = document.getElementById("walkthrough-tabs");
+        const steps = document.getElementById("walkthrough-steps");
+        const copy = document.getElementById("walkthrough-copy");
+        tabs.innerHTML = "";
+        steps.innerHTML = "";
+        walkthroughs.forEach((walkthrough) => {
+          const button = document.createElement("button");
+          button.textContent = walkthrough.label;
+          button.setAttribute("aria-current", String(walkthrough.id === state.walkthrough));
+          button.addEventListener("click", () => dispatch({ type: "walkthrough", walkthrough: walkthrough.id }));
+          tabs.appendChild(button);
+        });
+        const active = walkthroughs.find((walkthrough) => walkthrough.id === state.walkthrough);
+        copy.textContent = active.copy;
+        active.steps.forEach((step, index) => {
+          const button = document.createElement("button");
+          button.textContent = `${index + 1}. ${step.label}`;
+          if (state.completedSteps.includes(index)) button.className = "done";
+          button.addEventListener("click", () => dispatch({ type: "step", index, action: step.action }));
+          steps.appendChild(button);
+        });
+      };
+
+      const render = () => {
+        const fixture = PacketPrototype.selectedFixture(state);
+        const packet = PacketPrototype.buildPacket(state);
+        const assessment = PacketPrototype.assess(state);
+
+        renderChoices();
+        renderFixtureButtons();
+        renderTask(fixture);
+        renderPacketView(fixture, packet);
+        renderOmitted(fixture, packet);
+        renderWalkthroughs();
+
+        document.getElementById("fixture-title").textContent = fixture.title;
+        document.getElementById("fixture-summary").textContent = fixture.summary;
+        document.getElementById("packet-json").textContent = JSON.stringify(packet, null, 2);
+
+        const stateStrip = document.getElementById("state-strip");
+        stateStrip.innerHTML = [
+          ["Model portable", assessment.portable ? "Yes" : "No"],
+          ["Traceable bearing", assessment.traceable ? "Yes" : "No"],
+          ["Honest about limits", assessment.honest ? "Yes" : "No"],
+          ["Departures", String(assessment.departures)],
+        ].map(([label, value]) => `<div class="state-card"><span>${label}</span><strong>${value}</strong></div>`).join("");
+
+        const verdict = document.getElementById("verdict");
+        verdict.className = `verdict ${assessment.problems.length ? "warn" : "good"}`;
+        verdict.textContent = assessment.problems.length
+          ? assessment.problems.join(" ")
+          : "The packet is small, task-shaped, model-neutral, traceable to exact sources, and explicit about disagreement and missing support.";
+
+        document.getElementById("footer-state").textContent =
+          `Full state: fixture=${fixture.id}; ` +
+          PacketPrototype.choices.map((choice) => `${choice.id}=${state.policy[choice.id]}`).join("; ");
+      };
+
+      document.getElementById("reset").addEventListener("click", () => dispatch({ type: "reset" }));
+      render();
+    </script>
+  </body>
+</html>
