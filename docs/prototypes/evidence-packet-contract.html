@@ -227,6 +227,7 @@
       const PacketPrototype = (() => {
         const recommended = Object.freeze({
           request: "needs",
+          concepts: "situation",
           material: "presentation",
           bearing: "per-need",
           disagreement: "preserve",
@@ -244,6 +245,16 @@
               { value: "query", label: "Query string" },
             ],
             note: "Named needs let every item say what it bears on.",
+          },
+          {
+            id: "concepts",
+            title: "Discover abstract ideas",
+            recommended: "situation",
+            options: [
+              { value: "situation", label: "Situation cues" },
+              { value: "named-only", label: "Named only" },
+            ],
+            note: "Indicators and examples should retrieve a useful concept before the task knows its name.",
           },
           {
             id: "material",
@@ -385,13 +396,31 @@
           {
             id: "yagni",
             label: "Abstract idea",
-            title: "YAGNI meets a plugin abstraction",
-            summary: "An abstract concept needs definitions, indicators, and exceptions. A single dictionary sentence will not help with a design decision.",
-            task: "Should this team add a plugin interface before any second plugin exists? Use YAGNI as decision guidance, not as an absolute rule.",
+            title: "An unnamed design smell retrieves YAGNI",
+            summary: "The task never names YAGNI. Grounding matches its concrete situation to a recorded problem pattern, then retrieves the concept's definition and relevant exception.",
+            task: "The code has one built-in notification channel. The team wants to add a plugin interface now in case more channels appear later. No second channel is planned. Should they add the interface before the first release?",
             needs: [
-              { id: "need:meaning", kind: "question", question: "What does YAGNI advise?" },
+              { id: "need:meaning", kind: "question", question: "Which established design guidance applies to this situation?" },
               { id: "need:apply", kind: "question", question: "Which facts make it applicable here?" },
               { id: "need:exception", kind: "question", question: "What would justify the seam now?" },
+            ],
+            interpretations: [
+              {
+                id: "interpretation:yagni-match",
+                kind: "concept-match",
+                concept: "urn:entity:yagni",
+                label: "You Aren't Gonna Need It",
+                need: "need:meaning",
+                taskCues: [
+                  "add a plugin interface now in case more channels appear later",
+                  "No second channel is planned",
+                ],
+                matchedBy: [
+                  "urn:assertion:yagni-single-implementation-indicator",
+                  "urn:assertion:yagni-definition-a",
+                ],
+                why: "The task describes a speculative abstraction with one implementation and no concrete second requirement.",
+              },
             ],
             items: [
               {
@@ -617,6 +646,11 @@
         const buildPacket = (state) => {
           const fixture = selectedFixture(state);
           const groundingActivity = `urn:activity:ground-${fixture.id}`;
+          const namedConceptMiss = Boolean(fixture.interpretations?.length) && state.policy.concepts === "named-only";
+          const selectedItems = namedConceptMiss ? [] : fixture.items;
+          const selectedGaps = namedConceptMiss
+            ? [{ need: "need:meaning", reason: "Named-only retrieval found no concept because the task did not supply one." }]
+            : fixture.gaps;
           const hasUnresolvedConflict = fixture.conflicts.some((conflict) => conflict.state !== "resolved-by-supersession");
           const packet = {
             schema: "https://example.org/groundset/evidence-packet/v1",
@@ -631,10 +665,10 @@
               ? { text: fixture.task, needs: fixture.needs }
               : fixture.task,
             status: {
-              coverage: fixture.gaps.length ? "partial" : "complete",
+              coverage: selectedGaps.length ? "partial" : "complete",
               disagreement: hasUnresolvedConflict ? "unresolved" : fixture.conflicts.length ? "resolved" : "none",
             },
-            evidence: fixture.items.map((item, index) => {
+            evidence: selectedItems.map((item, index) => {
               if (state.policy.material === "records") {
                 return {
                   id: item.id,
@@ -663,6 +697,13 @@
             }),
           };
 
+          if (!namedConceptMiss && fixture.interpretations?.length) {
+            packet.interpretations = fixture.interpretations.map((interpretation) => ({
+              ...interpretation,
+              generatedBy: groundingActivity,
+            }));
+          }
+
           packet.budget = {
             applied: { maxEvidenceItems: 8, maxTextCharacters: 12000, maxMediaBytes: 2097152 },
             evidenceItems: packet.evidence.length,
@@ -671,11 +712,11 @@
 
           if (state.policy.request === "needs") {
             packet.coverage = fixture.needs.map((need) => {
-              const evidence = fixture.items
+              const evidence = selectedItems
                 .filter((item) => item.bearing.some((bearing) => bearing.need === need.id))
                 .map((item) => item.id);
               const conflict = fixture.conflicts.find((candidate) => candidate.need === need.id && candidate.state !== "resolved-by-supersession");
-              const gap = fixture.gaps.find((candidate) => candidate.need === need.id);
+              const gap = selectedGaps.find((candidate) => candidate.need === need.id);
               return {
                 need: need.id,
                 coverage: gap ? "partial" : evidence.length ? "covered" : "uncovered",
@@ -696,14 +737,14 @@
           }
 
           if (state.policy.insufficiency === "gaps") {
-            if (fixture.gaps.length) packet.gaps = fixture.gaps;
-            if (fixture.followUps.length) {
+            if (selectedGaps.length) packet.gaps = selectedGaps;
+            if (!namedConceptMiss && fixture.followUps.length) {
               packet.followUps = fixture.followUps.map((followUp) => ({
                 ...followUp,
                 continuation: `opaque:${fixture.id}:${followUp.id}`,
               }));
             }
-          } else if (fixture.gaps.length) {
+          } else if (selectedGaps.length) {
             packet.evidence.push({ id: "ev:weak-extra", score: 0.31, parts: [textPart("A loosely related search result was added to fill the remaining packet slot.")] });
             packet.status.coverage = "complete";
           }
@@ -727,6 +768,7 @@
           const departures = choices.filter((choice) => state.policy[choice.id] !== choice.recommended);
           const problems = [];
           if (state.policy.request === "query") problems.push("Evidence cannot name the exact need it addresses.");
+          if (state.policy.concepts === "named-only") problems.push("Abstract guidance disappears unless the task already knows what to ask for.");
           if (state.policy.material === "records") problems.push("The model receives identifiers and must reconstruct usable material.");
           if (state.policy.bearing === "score") problems.push("Ranking scores replace task-specific explanations.");
           if (state.policy.disagreement === "winner") problems.push("Grounding hides a source position and makes its own conclusion authoritative.");
@@ -770,11 +812,12 @@
         {
           id: "concept",
           label: "Abstract guidance",
-          copy: "YAGNI is useful only when the packet includes an indicator, an exception, and the unresolved fact that decides applicability. Watch what happens when gaps are hidden.",
+          copy: "The task never says YAGNI. Grounding matches concrete cues to the concept's recorded indicators, then supplies a definition, an exception, and the missing fact that decides applicability.",
           steps: [
-            { label: "Open YAGNI case", action: { type: "fixture", fixture: "yagni" } },
-            { label: "Hide the gap", action: { type: "choose", choice: "insufficiency", value: "pad" } },
-            { label: "Restore focused follow-up", action: { type: "choose", choice: "insufficiency", value: "gaps" } },
+            { label: "Open unnamed design smell", action: { type: "fixture", fixture: "yagni" } },
+            { label: "Require the concept's name", action: { type: "choose", choice: "concepts", value: "named-only" } },
+            { label: "Restore situation matching", action: { type: "choose", choice: "concepts", value: "situation" } },
+            { label: "Hide the remaining gap", action: { type: "choose", choice: "insufficiency", value: "pad" } },
           ],
         },
         {
@@ -896,6 +939,26 @@
           root.appendChild(item);
           return;
         }
+
+        (packet.interpretations || []).forEach((interpretation) => {
+          const item = document.createElement("div");
+          item.className = "evidence-item";
+          const title = document.createElement("h4");
+          title.textContent = `Concept match: ${interpretation.label}`;
+          const role = document.createElement("span");
+          role.className = "badge context";
+          role.textContent = interpretation.kind;
+          const why = document.createElement("p");
+          why.textContent = interpretation.why;
+          const cues = document.createElement("ul");
+          interpretation.taskCues.forEach((cue) => {
+            const line = document.createElement("li");
+            line.textContent = `Task cue: ${cue}`;
+            cues.appendChild(line);
+          });
+          item.append(title, role, why, cues);
+          root.appendChild(item);
+        });
 
         packet.evidence.forEach((evidence) => {
           const original = fixture.items.find((item) => item.id === evidence.id);
