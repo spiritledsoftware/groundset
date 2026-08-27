@@ -56,6 +56,10 @@ _Avoid_: Reference, database relation
 An attributed selection of records assembled for a purpose. Membership does not imply that all members share a Category.
 _Avoid_: Category, corpus
 
+**Corpus boundary**:
+The storage and authorization boundary containing canonical records and any derived indexes or Evidence packets. Material crosses it only through an explicit publication or export operation. A Corpus boundary is not a canonical record or semantic grouping.
+_Avoid_: Collection, record ACL
+
 **Source**:
 The origin cited for acquired material or an Assertion. Source is a role played by an Artifact, Snapshot, or Agent rather than a separate kind of knowledge.
 _Avoid_: Reference, evidence

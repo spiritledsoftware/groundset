@@ -16,6 +16,14 @@ Groundset uses three data models for three different jobs.
 
 Chunks, embeddings, ranking scores, and query-time trust scores belong in search projections or evidence packets. They are not canonical records.
 
+### Corpus boundaries
+
+A Corpus boundary is the minimum storage and authorization boundary. Canonical records, derived indexes, and Evidence packets produced from restricted material remain inside the same boundary. A Collection is a semantic grouping and never an authorization boundary.
+
+Canonical records do not carry per-record access-control rules. Such rules would require every derivation, relationship, index entry, and packet fragment to propagate policy correctly. Instead, material crosses a Corpus boundary only through an explicit publication or export Activity checked by the deployment against source rights. The canonical model records that Activity and its provenance; it does not define the authorization engine.
+
+Public corpus deployments contain no private record, selector, derived Assertion, or opaque pointer that would disclose restricted material.
+
 ## Canonical record kinds
 
 ### Entity
@@ -65,13 +73,42 @@ A person, organization, model, software system, or sensor responsible for an Ass
 
 An acquisition, publication, extraction, transformation, rendering, evaluation, or verification event. An Activity records its inputs, outputs, responsible Agents, time, method, and tool versions.
 
+Activity roles remain distinct from Assertion attribution:
+
+- `attributedTo` identifies the Agent whose claim, position, or observation an Assertion records;
+- `generatedBy` identifies the Activity that recorded or derived it;
+- the Activity's responsible Agents identify who or what performed that work.
+
+This distinction lets a recording remain attributed to its speaker while separately identifying the interviewer, transcriber, translator, model, or sensor involved in its derivation.
+
 ### Collection
 
-An attributed grouping assembled for a purpose. A corpus, multimodal example, review set, or vocabulary can be a Collection. Membership says that a curator selected an item. It does not assert that every member has the same semantic type.
+An attributed grouping assembled for a purpose. A multimodal example, review set, release selection, or vocabulary can be a Collection. Membership says that a curator selected an item. It does not assert that every member has the same semantic type or access policy.
 
 ### Term
 
 A versioned vocabulary definition. A Term defines either a Category or a Relationship predicate. Terms have namespaced identifiers, labels, definitions, and optional validation rules for allowed subjects and objects.
+
+## Reusable values
+
+Relationship endpoints, Activity parameters, Scope constraints, and citations reuse three value forms:
+
+1. a canonical record identifier;
+2. a Snapshot selection;
+3. a typed literal with a datatype and, when applicable, a unit or language.
+
+Illustrative typed literal:
+
+```json
+{
+  "type": "literal",
+  "value": 21.4,
+  "datatype": "http://www.w3.org/2001/XMLSchema#decimal",
+  "unit": "https://example.org/unit/degree-celsius"
+}
+```
+
+Typed literals preserve source values. Confidence, probability, severity, authenticity, and authority do not become universal record fields; a domain vocabulary may use typed literals in attributed Assertions or assessments.
 
 ## Source selections
 
@@ -88,6 +125,35 @@ A citation points to an immutable Snapshot and identifies the relevant part with
 ```
 
 Generated chunks are search projections. They do not replace Snapshot selectors as durable citations.
+
+Selector types are extensible and namespaced. Domain profiles may define selectors for geometry features, legal sections, formal-language symbols, media tracks, dataset cells, or other source-native structures without changing the core record kinds.
+
+## Scope constraints
+
+Scope states when and where an Assertion applies. It is a list of predicate/value constraints whose predicates are versioned Terms and whose values are canonical record identifiers or typed literals.
+
+```json
+{
+  "scope": [
+    {
+      "predicate": "https://example.org/groundset/validFrom",
+      "object": {
+        "type": "literal",
+        "value": "2025-07-01",
+        "datatype": "http://www.w3.org/2001/XMLSchema#date"
+      }
+    },
+    {
+      "predicate": "https://example.org/law/jurisdiction",
+      "object": "urn:place:example-state"
+    }
+  ]
+}
+```
+
+The core vocabulary defines only broadly reusable temporal predicates such as `validFrom` and `validUntil`. Domain vocabularies define constraints such as jurisdiction, population, platform, package version range, axiom system, equipment, or forecast target interval.
+
+Scope is deliberately not a universal rule language. Complex exceptions remain separate attributed Assertions. Publication, acquisition, and observation times belong to Snapshots and Activities; they must not be substituted for the time during which a Claim applies.
 
 ## Relationships
 
@@ -116,6 +182,8 @@ supersedes
 ```
 
 Third parties can publish domain vocabularies without changing the core model. Groundset may borrow established semantics such as W3C PROV for provenance and SKOS for taxonomies without requiring an RDF store or general-purpose ontology reasoner.
+
+When a semantic relationship needs more than two endpoints, its event or situation becomes an Entity and attributed Relationship Assertions connect participants to it by named roles. Groundset does not add a different core record kind for every domain event.
 
 ## Categories, collections, and tags
 
@@ -164,11 +232,17 @@ Tailwind centering example
 
 The source Snapshot remains preserved. Symbol annotations and measurements are derived Assertions linked to source selections. The screenshot is a derived Artifact, not metadata attached to the HTML.
 
+The same pattern covers transcripts, translations, vectorized maps, edited photographs, formal proofs, evaluation logs, and published aggregates. Each durable representation is an Artifact; the transformation is an Activity; interpretations and measurements are Assertions.
+
+Large datasets and observation streams remain Artifact content. Groundset does not require a canonical Assertion for every row or sample. A task may promote selected values to Assertions while citing the original Snapshot with a row, cell, time, or structural selector.
+
 ## Change and correction
 
 Snapshots and Assertions are immutable. A correction creates another Assertion and connects it with `supersedes`, `contradicts`, or another attributed relationship. Activities record every transformation so derived Artifacts and search projections can be regenerated.
 
 The canonical corpus does not store a universal truth flag or one global authority score. Assessments name their assessor, criteria, method, Scope, and time. Retrieval policy may calculate task-specific rankings from those assessments.
+
+Retractions, legal amendments, forecast revisions, taxonomic changes, vulnerability updates, and conflicting testimony all follow this rule. A later Assertion may retract, narrow, contradict, or supersede an earlier one without deleting the earlier source or claim.
 
 ## Deferred decisions
 
@@ -176,6 +250,9 @@ The first version will not define:
 
 - a universal domain ontology;
 - a universal Scope expression language;
+- the exact versioned JSON wire schema and conformance profiles;
+- corpus-boundary authorization and export-policy enforcement;
+- the repository and downloadable corpus-release format;
 - automatic semantic claim deduplication;
 - a general inference engine;
 - a global source authority score;
