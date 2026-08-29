@@ -310,6 +310,62 @@ Routine exclusions do not require an explanation. Answer-affecting gaps, conflic
 
 Grounding produces a packet inside the source material's Corpus boundary. Material must cross a boundary through an explicit publication or export Activity before another Corpus can select it. A public packet cannot reveal protected record identifiers, values, locators, counts, or even the existence of protected candidates.
 
+## Task-time Grounding behavior
+
+Grounding owns the filtering between a task and an Evidence packet. The Agent receives the packet, not a list of search results that it must sort out itself.
+
+### Interpret the task
+
+Grounding preserves the caller's task and separates it into named Information needs. It also records:
+
+- Grounding constraints supplied by the caller or read deterministically from the request environment, such as a required date or dependency version;
+- Task cues that may help text, vector, structural, graph, or Concept retrieval.
+
+Grounding may infer an Information need or Task cue. It must not silently turn an inference into a Grounding constraint. When one missing caller fact changes which material applies, Grounding may continue far enough to find the alternatives but reports the ambiguity and asks for that fact.
+
+### Authorize and generate candidates
+
+Grounding determines which Corpus boundaries the request may use before it searches. A search projection receives no handle for an unavailable Corpus, and request state does not reveal that another Corpus contains matching material.
+
+Grounding generates Candidate material separately for each Information need. It may combine full-text, BM25, vector, structural, symbol, and graph indexes, including situation-based Concept matching. A single blended top-k list is insufficient because results for one Information need can crowd out another.
+
+Candidate generation aims for recall. Search scores describe index matches only. They do not establish authority, applicability, or Evidence bearing, and they never appear in the Evidence packet.
+
+### Enforce eligibility before ranking
+
+Grounding rejects material that violates a Grounding constraint before policy ranking. This includes unavailable material and explicit Scope, version, date, or source-status mismatches that make the material ineligible for the request. An implementation may push these filters into an index query for efficiency, but it must still enforce them on the returned candidates.
+
+An unknown value is not silently treated as satisfied. Grounding records it as unknown, then either qualifies the result, reports a gap, or asks for the missing fact. A hard violation does not become a ranking penalty merely because the material is semantically similar.
+
+### Select, then complete the source trail
+
+A versioned Grounding policy selects eligible Candidate material separately for each Information need. It uses query-time Scope fit, provenance, attributed Assessments, source status, verification results, and the role the material would play in the answer. Exact v1 authority and assessment criteria remain a separate decision.
+
+Provisional selection is not the end of retrieval. Grounding follows answer-relevant relationships from selected material to find:
+
+- required members of a cited evidence set;
+- supporting or contradicting material;
+- corrections and explicit supersession;
+- definitions, examples, counterexamples, and exceptions for a matched Concept.
+
+Grounding applies the same eligibility and policy checks to this related material, then updates the selection. It does not perform an unbounded graph walk or return every neighboring record.
+
+### Decide coverage and disagreement
+
+Grounding stops based on the state of each Information need, not after a fixed number of hits. Each need ends as covered, qualified, conflicted, or unsupported. Overall coverage and disagreement are derived from those separate results.
+
+Relevant competing positions remain selected. Ranking cannot resolve a disagreement. An explicit, cited correction or supersession relationship may mark it resolved while preserving the earlier position and source.
+
+When no selected material directly bears on an Information need, Grounding records a gap. It does not fill the Evidence packet with merely related material.
+
+### Assemble the packet and continue narrowly
+
+Grounding reserves packet budget for every Information need, exact supporting or contradicting selections, and answer-changing disagreement before adding background material. A global score order must not spend the budget on one well-retrieved need while starving another.
+
+The resulting Evidence packet contains selected material, per-need bearing, applicability, disagreement, gaps, and selection traces. It omits routine rejected candidates and all search scores.
+
+A follow-up asks for one answer-changing missing piece. It may request caller clarification, further retrieval under narrower constraints, or a derivation Activity. The opaque continuation binds the next Grounding request to the prior packet and follow-up, but it does not paginate through rejected candidates. Grounding returns any useful partial Evidence with the follow-up instead of delegating the unresolved filtering to the Agent.
+
 ## Reusable values
 
 Relationship endpoints, Activity parameters, Scope constraints, and citations reuse three value forms:

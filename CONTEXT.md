@@ -112,6 +112,18 @@ _Avoid_: Search, ingestion
 A named question or proposition within a task that Grounding must cover, qualify, contradict, or report as unsupported.
 _Avoid_: Search query, chunk
 
+**Task cue**:
+A concrete word, condition, example, or structural signal in a task that Grounding uses to find material or match a Concept. A Task cue may be inferred, but it is not a requirement that candidate material must satisfy.
+_Avoid_: Grounding constraint, keyword
+
+**Grounding constraint**:
+An explicit task requirement or deterministically observed request fact, such as a required date or dependency version, that candidate material must satisfy to remain eligible. Grounding does not turn an inferred Task cue into a Grounding constraint.
+_Avoid_: Task cue, ranking preference
+
+**Candidate material**:
+Request-specific material returned by one or more search projections before Grounding decides whether it applies or belongs in an Evidence packet. Search scores and routine rejection reasons remain attached to Candidate material and are not supplied to the Agent.
+_Avoid_: Evidence, search result shown to the Agent
+
 **Grounding policy**:
 Versioned rules that filter and prefer material for a class of task using Scope, provenance, Assessments, and verification results. A Grounding policy is task-specific and does not declare one universal source authority.
 _Avoid_: Global trust score, ranking model
