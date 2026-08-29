@@ -117,8 +117,32 @@ The publication of conforming Corpus releases by independent publishers without 
 _Avoid_: Central curation, unverified trust
 
 **Hosted service**:
-An optional managed Groundset service for preparing, finding, distributing, indexing, and Grounding Corpus releases. A Corpus release remains usable without the Hosted service.
+An optional managed Groundset service for preparing, finding, distributing, indexing, and Grounding Corpus releases. It uses the same Grounding logic as the Reference implementation but may use stronger compatible models, search systems, maintained Corpora, and computing resources. A Corpus release remains usable without the Hosted service.
 _Avoid_: Corpus authority, required runtime
+
+**Reference implementation**:
+The open implementation of the complete basic Groundset workflow: import material, create and validate releases, build indexes, run Grounding, and produce Evidence packets. It uses the same Grounding engine as the Hosted service and includes usable local components that work without a Groundset account or required network call. It is a usable alternative, not a demonstration of the specifications.
+_Avoid_: Hosted service clone, sample code
+
+**Grounding engine**:
+The open orchestration, eligibility checks, policy application, selection rules, disagreement handling, and Evidence-packet assembly shared by the Reference implementation and Hosted service.
+_Avoid_: Grounding component, Hosted implementation
+
+**Grounding component**:
+An interchangeable model, search system, parser, or other bounded implementation used by the shared Grounding engine. Deployments may choose different Grounding components without changing the Grounding policy or selection behavior.
+_Avoid_: Grounding policy, hidden selection rule
+
+**Conforming implementation**:
+An independent or Groundset-maintained implementation that passes the public compatibility test suite for the specification versions it claims to support.
+_Avoid_: Similar implementation, official service
+
+**Portable export**:
+A standards-conforming export of the durable material and configuration a customer is entitled to possess, consumable by the Reference implementation. Rebuildable indexes and third-party material outside the customer's rights are excluded.
+_Avoid_: Document dump, database backup
+
+**Access-only Corpus**:
+A fixed Corpus release that a consumer may query through an authorized service but may not download. Evidence packets identify the release, and the access, source-resolution, and retention limits are explicit before use.
+_Avoid_: Portable Corpus, hidden live corpus
 
 **Release catalog**:
 A discovery listing for Corpus releases. Several catalogs and mirrors may list the same release, but none assigns or changes its identity.

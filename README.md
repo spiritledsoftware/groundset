@@ -2,7 +2,7 @@
 
 Groundset is the working name for open, domain-neutral knowledge infrastructure and its reference service. It preserves versioned source material, records attributed interpretations, and gives AI systems small evidence packets instead of unfiltered retrieval dumps.
 
-The current design is documented in [`docs/data-model.md`](docs/data-model.md).
+The current design is documented in [`docs/data-model.md`](docs/data-model.md) and [`docs/product-boundary.md`](docs/product-boundary.md).
 
 ## Runtime
 
