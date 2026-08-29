@@ -204,6 +204,112 @@ JSON Schema cannot perform the second tier reliably. A record may pass its schem
 
 Canonical records do not contain `@context`. Groundset may export a deterministic JSON-LD representation that wraps records in a published context and graph. The projection maps Groundset provenance, selector, and vocabulary concepts to standards such as PROV, Web Annotation, and SKOS without creating a second Canonical record shape.
 
+## Evidence packet contract
+
+An Evidence packet is request-specific typed JSON produced by a Grounding Activity. It is not a Canonical record. Thin adapters translate the same packet into provider-native text, image, audio, video, document, and structured-data inputs without changing selection or meaning.
+
+### Envelope and task
+
+Every packet declares its versioned schema, packet identifier, Grounding Activity, Grounding policy, time, and source Corpus identifiers. It preserves the task text and names the Information needs Grounding attempted to cover.
+
+An Information need is either a question or a proposition. This distinction controls Evidence bearing: material may answer or qualify a question, while it may support or contradict a proposition.
+
+```json
+{
+  "schema": "https://example.org/groundset/evidence-packet/v1",
+  "id": "urn:uuid:example-packet",
+  "grounding": {
+    "activity": "urn:activity:ground-example",
+    "policy": "https://example.org/grounding-policy/reference/v1",
+    "groundedAt": "2026-08-27T15:00:00Z",
+    "corpus": ["urn:groundset-corpus:example"]
+  },
+  "task": {
+    "text": "Should we add an interface for a possible future implementation?",
+    "needs": [
+      {
+        "id": "need:guidance",
+        "kind": "question",
+        "question": "Which established design guidance applies?"
+      }
+    ]
+  },
+  "status": {
+    "coverage": "partial",
+    "disagreement": "none"
+  }
+}
+```
+
+Coverage and disagreement remain separate because a packet may be both incomplete and conflicted. The packet reports them overall and per Information need.
+
+### Concept discovery and selection
+
+Grounding may retrieve an abstract Concept even when the task does not name it. It matches concrete task cues against attributed definitions, indicators, examples, counterexamples, and applicability conditions. The packet records this request-specific Concept match with:
+
+- the Concept identifier and label;
+- the Information need it may help answer;
+- concrete task cues;
+- the Assertions or examples that matched;
+- a plain-language reason;
+- the Grounding Activity that made the interpretation.
+
+A Concept match is not added to the Canonical corpus as truth. It remains a request-specific interpretation.
+
+BM25, full-text search, embeddings, and graph traversal generate candidates. They do not decide authority. A versioned Grounding policy filters and prefers candidates using applicable Scope, provenance, attributed Assessments, source status, and verification results.
+
+Every selected Concept match and Evidence item records the policy, selecting Grounding Activity, task-specific reasons, and Assessment references used. The packet does not contain one global authority, quality, or confidence score.
+
+### Evidence items
+
+An Evidence item gives the model usable material while preserving an exact path back to the Canonical corpus. It contains:
+
+- a packet-local identifier, label, and presentation role;
+- an Assertion, Artifact, or exact Snapshot selection as its source;
+- enough provenance to resolve attribution and derivation;
+- model-ready content parts;
+- its bearing on one or more Information needs;
+- a query-time applicability assessment;
+- its selection policy, reasons, and attributed Assessment references.
+
+Content parts may carry text, structured data, or media. Every media part binds to an immutable Snapshot selection and declares its media type, delivery location, byte length, and integrity value. It includes a text fallback when the receiving model cannot consume that media type.
+
+Applicability is a Grounding interpretation, separate from the source Assertion's canonical Scope. It reports satisfied, violated, and unknown conditions and identifies the Grounding Activity responsible for that assessment.
+
+Bearing is also request-specific. It explains what the material does for a named Information need rather than exposing a retrieval score.
+
+### Disagreement, gaps, and follow-ups
+
+Grounding preserves relevant competing positions. A conflict names each position, links the Evidence supporting it, and reports whether the disagreement remains unresolved or an explicit cited relationship such as `supersedes` resolves it. Grounding does not discard a position merely because ranking preferred another source.
+
+A gap identifies an Information need that lacks enough applicable support and explains why. Grounding must report the gap rather than padding the packet with weaker material.
+
+A focused follow-up contains:
+
+- the Information need it serves;
+- a type such as caller clarification, further retrieval, or a requested derivation Activity;
+- a plain-language question and reason;
+- structured constraints for the next request;
+- an opaque continuation bound to the packet and follow-up.
+
+Follow-ups request one missing piece. They are not pagination through the rejected candidate set.
+
+### Budgets, omissions, and boundaries
+
+The Grounding request applies explicit limits for Evidence items, text, and media bytes. The packet reports the applied limits, actual use, and whether truncation affected coverage. A model-specific adapter may translate a token budget into these model-neutral limits before Grounding.
+
+An Evidence packet omits:
+
+- raw Canonical record dumps when a smaller source-bound presentation suffices;
+- embeddings, generated chunks, graph scores, BM25 scores, and routine rejected candidates;
+- provider-specific prompt formatting and system instructions;
+- universal truth, confidence, quality, and authority scores;
+- inaccessible source locators or metadata that reveals protected material.
+
+Routine exclusions do not require an explanation. Answer-affecting gaps, conflicts, policy limits, and budget truncation do.
+
+Grounding produces a packet inside the source material's Corpus boundary. Material must cross a boundary through an explicit publication or export Activity before another Corpus can select it. A public packet cannot reveal protected record identifiers, values, locators, counts, or even the existence of protected candidates.
+
 ## Reusable values
 
 Relationship endpoints, Activity parameters, Scope constraints, and citations reuse three value forms:

@@ -12,6 +12,10 @@ _Avoid_: Knowledge object, record
 An abstract Entity used to connect definitions, examples, indicators, exceptions, and related ideas without declaring one formulation authoritative.
 _Avoid_: Claim, category
 
+**Concept match**:
+A request-specific Grounding interpretation that a Concept may help answer an Information need because recorded indicators, examples, or applicability conditions match the task. A Concept match is not a Canonical Assertion.
+_Avoid_: Fact, category assignment
+
 **Artifact**:
 A logical information-bearing item, such as a document, dataset, code example, image, or recording. An Artifact may be acquired or derived and may have multiple Snapshots.
 _Avoid_: Evidence, snapshot
@@ -35,6 +39,10 @@ _Avoid_: Process metadata
 **Assertion**:
 An attributed recording of a Claim or semantic Relationship. Recording an Assertion does not make it true.
 _Avoid_: Fact, truth
+
+**Assessment**:
+An attributed Assertion that evaluates material against named criteria for a stated Scope and time. An Assessment does not create a universal quality, confidence, or authority score.
+_Avoid_: Rating, truth flag
 
 **Claim**:
 A proposition expressed by an Assertion that may have support, contradiction, and a stated Scope.
@@ -99,6 +107,14 @@ _Avoid_: Retrieval dump, context packet
 **Grounding**:
 The task-time selection of applicable, traceable material into an Evidence packet for an Agent.
 _Avoid_: Search, ingestion
+
+**Information need**:
+A named question or proposition within a task that Grounding must cover, qualify, contradict, or report as unsupported.
+_Avoid_: Search query, chunk
+
+**Grounding policy**:
+Versioned rules that filter and prefer material for a class of task using Scope, provenance, Assessments, and verification results. A Grounding policy is task-specific and does not declare one universal source authority.
+_Avoid_: Global trust score, ranking model
 
 **Grounding integration**:
 The small Agent-runtime adapter that requests Grounding before a model invocation and supplies the resulting Evidence packet as context. It is inside the v1 replacement boundary, but the rest of the Agent runtime is not.
