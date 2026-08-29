@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Groundset task-time Grounding, throwaway prototype</title>
+    <title>How Groundset chooses sources, throwaway prototype</title>
     <style>
       :root {
         color-scheme: light;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: #f4f1e8;
         color: #1d211e;
       }
@@ -110,7 +110,7 @@
       .grid {
         display: grid;
         gap: 20px;
-        grid-template-columns: minmax(320px, .95fr) minmax(0, 1.05fr);
+        grid-template-columns: minmax(0, 1fr);
       }
 
       section { border-top: 1px solid #1d211e; min-width: 0; }
@@ -164,12 +164,16 @@
       pre {
         background: #202720;
         color: #eaf0e5;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         font-size: 12px;
         max-height: 760px;
         overflow: auto;
         padding: 16px;
         white-space: pre-wrap;
       }
+
+      details { margin-bottom: 18px; }
+      summary { cursor: pointer; font-weight: 700; padding: 10px 0; }
 
       .walkthroughs { margin-top: 28px; }
       .walkthrough-tabs button { font-weight: 700; }
@@ -193,75 +197,76 @@
   </head>
   <body>
     <header>
-      <div class="warning">Throwaway decision prototype</div>
-      <h1>How should Grounding decide what the model sees?</h1>
+      <div class="warning">Rough design demo</div>
+      <h1>How should Groundset choose what to show the AI?</h1>
       <p>
-        This prototype tests the task-time flow between a request and an Evidence packet. It asks
-        whether Groundset can do the filtering itself: name the task's Information needs, enforce
-        hard constraints, find candidates, finish their source and conflict trails, decide what is
-        sufficiently supported, and ask for one missing input when it cannot finish safely.
+        Watch Groundset turn a task into a short list of useful sources. The hard cases matter most.
+        Can it reject the wrong version, find a conflicting source, admit when it has no answer,
+        and ask for a missing detail before the AI sees anything?
       </p>
     </header>
 
     <main>
       <aside>
-        <h2>Free play: disputed choices</h2>
+        <h2>Change how it works</h2>
         <div id="choices"></div>
-        <button class="run" id="run">Run current flow</button>
-        <button class="reset" id="reset">Reset this case</button>
-        <button class="reset" id="defaults">Reset to recommendations</button>
+        <button class="run" id="run">Run all steps</button>
+        <button class="reset" id="reset">Start over</button>
+        <button class="reset" id="defaults">Use recommended choices</button>
       </aside>
 
       <article>
-        <div class="eyebrow">Current stress case</div>
+        <div class="eyebrow">Current example</div>
         <h2 id="scenario-title"></h2>
         <p id="scenario-summary"></p>
         <p class="notice">
-          These are representative records shaped like the accepted FEVEROUS and FreshStack
-          Collections, not copied benchmark entries. Source and baseline eligibility remains a
-          separate research decision.
+          These made-up records behave like the FEVEROUS and FreshStack data we plan to use. They
+          test the flow. They are not benchmark results.
         </p>
 
         <div class="state-strip" id="state-strip"></div>
         <div class="verdict" id="verdict"></div>
 
         <section>
-          <h3>Proving Corpus cases</h3>
+          <h3>Examples</h3>
           <div class="fixture-toolbar" id="scenario-buttons"></div>
         </section>
 
         <section>
-          <h3>Drive the Grounding Activity</h3>
+          <h3>Run it step by step</h3>
           <div class="action-toolbar" id="action-buttons"></div>
         </section>
 
         <div class="grid">
           <div>
             <section>
-              <h3>Task and interpreted state</h3>
+              <h3>The task and what Groundset understood</h3>
               <div class="panel" id="task-view"></div>
               <div class="panel" id="needs-view"></div>
             </section>
 
             <section>
-              <h3>Candidate pipeline</h3>
+              <h3>Possible sources</h3>
               <div id="candidate-view"></div>
             </section>
 
             <section>
-              <h3>Evidence packet result</h3>
+              <h3>What the AI receives</h3>
               <div class="packet-view" id="packet-view"></div>
             </section>
           </div>
 
           <section>
-            <h3>Full Grounding state</h3>
-            <pre id="state-json" tabindex="0"></pre>
+            <h3>Technical details</h3>
+            <details>
+              <summary>Show the raw state</summary>
+              <pre id="state-json" tabindex="0"></pre>
+            </details>
           </section>
         </div>
 
         <section class="walkthroughs">
-          <h3>Guided walkthroughs</h3>
+          <h3>Walkthroughs</h3>
           <div class="walkthrough-tabs" id="walkthrough-tabs"></div>
           <p class="walkthrough-copy" id="walkthrough-copy"></p>
           <div class="walkthrough-steps" id="walkthrough-steps"></div>
@@ -299,87 +304,87 @@
         const choices = [
           {
             id: "interpretation",
-            title: "Interpret the task",
+            title: "Understand the task",
             options: [
-              { value: "needs", label: "Named needs" },
-              { value: "query", label: "One query" },
+              { value: "needs", label: "Separate questions" },
+              { value: "query", label: "One search" },
             ],
-            note: "Groundset should name what must be answered instead of searching the task as one blob.",
+            note: "A task may contain several questions. Groundset should track each one.",
           },
           {
             id: "constraints",
-            title: "Apply hard constraints",
+            title: "Enforce must-match rules",
             options: [
-              { value: "gate", label: "Reject first" },
-              { value: "penalty", label: "Score penalty" },
+              { value: "gate", label: "Remove bad matches" },
+              { value: "penalty", label: "Lower their rank" },
             ],
-            note: "Access, source status, and explicit version or date requirements are eligibility rules, not preferences.",
+            note: "A source from the wrong version or date should never win because its wording is close.",
           },
           {
             id: "retrieval",
-            title: "Generate candidates",
+            title: "Search for sources",
             options: [
-              { value: "per-need", label: "Hybrid per need" },
-              { value: "blended", label: "One top-k" },
+              { value: "per-need", label: "Search each question" },
+              { value: "blended", label: "One combined search" },
             ],
-            note: "Text, vector, graph, and structural indexes generate candidates for each need.",
+            note: "Searching each question stops one popular topic from crowding out the rest.",
           },
           {
             id: "selection",
-            title: "Select material",
+            title: "Choose the sources",
             options: [
-              { value: "policy", label: "Policy + roles" },
-              { value: "similarity", label: "Similarity rank" },
+              { value: "policy", label: "Use source checks" },
+              { value: "similarity", label: "Closest wording" },
             ],
-            note: "Selection should use Scope, provenance, Assessments, source status, and the material's job in the answer.",
+            note: "Groundset should check the source, version, date, and what the source proves.",
           },
           {
             id: "completion",
-            title: "Finish source trails",
+            title: "Check related sources",
             options: [
-              { value: "expand", label: "Expand relations" },
-              { value: "hits", label: "Keep hits" },
+              { value: "expand", label: "Follow the links" },
+              { value: "hits", label: "Stop at first hits" },
             ],
-            note: "Selected hits can point to required evidence sets, contradictions, corrections, or superseding material.",
+            note: "A source may point to missing proof, a correction, an exception, or a disagreement.",
           },
           {
             id: "stopping",
-            title: "Know when to stop",
+            title: "Decide when there is enough",
             options: [
-              { value: "coverage", label: "Per-need status" },
-              { value: "fixed", label: "Fixed top-k" },
+              { value: "coverage", label: "Check every question" },
+              { value: "fixed", label: "Take the first few" },
             ],
-            note: "Stop when each need is covered, qualified, conflicted, or honestly unsupported.",
+            note: "Every question needs an answer, a conflict, or an honest 'we do not know.'",
           },
           {
             id: "packing",
-            title: "Spend the packet budget",
+            title: "Fill the answer pack",
             options: [
-              { value: "reserve", label: "Reserve by need" },
-              { value: "global", label: "Global rank" },
+              { value: "reserve", label: "Make room for each" },
+              { value: "global", label: "Highest ranked only" },
             ],
-            note: "Reserve room for every need, exact proof, and relevant competing positions before adding context.",
+            note: "Keep room for every question and for sources that disagree.",
           },
           {
             id: "followup",
-            title: "Handle missing input",
+            title: "Handle a missing detail",
             options: [
-              { value: "groundset", label: "Typed follow-up" },
-              { value: "model", label: "Let model decide" },
+              { value: "groundset", label: "Ask a clear question" },
+              { value: "model", label: "Let the AI guess" },
             ],
-            note: "Groundset should ask for one answer-changing detail instead of handing ambiguity to the model.",
+            note: "If one missing detail changes the answer, ask for it.",
           },
         ];
 
         const scenarios = [
           {
             id: "feverous-composite",
-            corpus: "FEVEROUS core",
-            title: "A claim needs both a sentence and a table cell",
-            summary: "A FEVEROUS-style verification task has two independent propositions. One popular page can crowd the other evidence out of a single blended top-k.",
+            corpus: "FEVEROUS sample",
+            title: "One claim needs two sources",
+            summary: "The claim has two parts. A single combined search can fill up with matches for the first part and miss the second.",
             task: "Verify: The club hired Rivera in 2011, and it won the cup that season.",
-            explicitConstraints: ["Use the frozen December 2020 FEVEROUS Snapshot", "Cite the exact evidence set"],
-            inferredCues: ["two propositions", "same season", "person and club entities"],
+            explicitConstraints: ["Use the December 2020 FEVEROUS copy", "Quote the exact sentence or table cell"],
+            inferredCues: ["two claims", "same year", "person and club names"],
             needs: [
               { id: "need:hire", kind: "proposition", text: "The club hired Rivera in 2011." },
               { id: "need:cup", kind: "proposition", text: "The club won the cup in 2011." },
@@ -409,12 +414,12 @@
           },
           {
             id: "feverous-conflict",
-            corpus: "FEVEROUS core",
-            title: "The first hit supports the claim, but its source trail contains a refutation",
-            summary: "The direct hit looks decisive. Completing the linked evidence set reveals a second source that contradicts one part of the claim.",
+            corpus: "FEVEROUS sample",
+            title: "A linked source disagrees",
+            summary: "The first sources support the claim. One of their links leads to a table that says something different.",
             task: "Verify: Northbridge opened in 1986 and was designed by Hall.",
-            explicitConstraints: ["Use the frozen December 2020 FEVEROUS Snapshot", "Report support and refutation separately"],
-            inferredCues: ["compound claim", "opening date", "architect attribution"],
+            explicitConstraints: ["Use the December 2020 FEVEROUS copy", "Show both sides when sources disagree"],
+            inferredCues: ["claim has two parts", "opening date", "named designer"],
             needs: [
               { id: "need:date", kind: "proposition", text: "Northbridge opened in 1986." },
               { id: "need:architect", kind: "proposition", text: "Hall designed Northbridge." },
@@ -436,11 +441,11 @@
           },
           {
             id: "feverous-missing",
-            corpus: "FEVEROUS core",
-            title: "Search finds the subject but not the claimed fact",
-            summary: "Several sources are related to the person. None states the award claim. Groundset must return a gap instead of padding the packet.",
+            corpus: "FEVEROUS sample",
+            title: "Search finds the person, but not the fact",
+            summary: "Several pages mention the person and the award. None says the person won it. Groundset should say it found no proof.",
             task: "Verify: Dr. Sen received the Alder Prize in 2008.",
-            explicitConstraints: ["Use the frozen December 2020 FEVEROUS Snapshot"],
+            explicitConstraints: ["Use the December 2020 FEVEROUS copy"],
             inferredCues: ["award", "person", "year"],
             needs: [
               { id: "need:award", kind: "proposition", text: "Dr. Sen received the Alder Prize in 2008." },
@@ -463,17 +468,17 @@
           {
             id: "laravel-version",
             corpus: "FreshStack Laravel 10/11",
-            title: "An older answer ranks first for a Laravel 11 project",
-            summary: "The repository exposes Laravel 11 in its lockfile. The highly similar Laravel 10 answer is ineligible, even if its wording matches better.",
+            title: "The top answer is for the wrong Laravel version",
+            summary: "The project uses Laravel 11. A Laravel 10 answer matches the wording better, but it is still the wrong answer.",
             task: "In this repository, where should I register a middleware alias?",
-            explicitConstraints: ["composer.lock resolves laravel/framework 11.4", "Use sources valid for Laravel 11"],
-            inferredCues: ["middleware alias", "current repository"],
+            explicitConstraints: ["composer.lock says Laravel 11.4", "Use Laravel 11 sources"],
+            inferredCues: ["middleware alias", "current codebase"],
             needs: [
               { id: "need:procedure", kind: "question", text: "Where does a Laravel 11 application register a middleware alias?" },
             ],
             candidates: [
               {
-                id: "fs:so-kernel", label: "Accepted Stack Overflow answer", need: "need:procedure", corpus: "FreshStack", version: "Laravel 10", sourceStatus: "active", hardFit: false, hardReason: "Version contradicts the repository lockfile", rank: 0.97, origin: "search", generators: ["BM25", "vector"], bearing: "answers", direct: true, recommended: false,
+                id: "fs:so-kernel", label: "Accepted Stack Overflow answer", need: "need:procedure", corpus: "FreshStack", version: "Laravel 10", sourceStatus: "active", hardFit: false, hardReason: "This source is for Laravel 10, but the project uses Laravel 11", rank: 0.97, origin: "search", generators: ["BM25", "vector"], bearing: "answers", direct: true, recommended: false,
                 content: "Add the alias to app/Http/Kernel.php.", assessments: ["freshstack:accepted-answer", "scope:laravel-10"],
               },
               {
@@ -489,8 +494,8 @@
           {
             id: "laravel-ambiguous",
             corpus: "FreshStack Laravel 10/11",
-            title: "The answer changes by version, but the caller did not supply one",
-            summary: "Both answers are legitimate in their own Scope. Groundset can retrieve both, qualify them, and ask for the one missing fact that changes the answer.",
+            title: "The right answer depends on a missing version",
+            summary: "Laravel 10 and 11 both have valid answers. Groundset should show both and ask which version the project uses.",
             task: "Where do I register a middleware alias in Laravel?",
             explicitConstraints: [],
             inferredCues: ["middleware alias", "Laravel version not supplied"],
@@ -511,45 +516,45 @@
           },
           {
             id: "laravel-superseded",
-            corpus: "FreshStack lifecycle fixture",
-            title: "A later source corrects a stale answer at the same URL",
-            summary: "The search hit was captured before a correction. Following its Artifact and supersession trail finds the newer immutable Snapshot and records the disagreement as resolved.",
+            corpus: "FreshStack change history",
+            title: "A page was corrected after Groundset saved it",
+            summary: "Search finds the older copy first. Following the page's history finds the correction and keeps both copies so the change is clear.",
             task: "Does the framework's retry helper include the first attempt in its count?",
-            explicitConstraints: ["Use the latest eligible October 2024 lifecycle Snapshot"],
-            inferredCues: ["retry helper", "attempt count", "source may have changed"],
+            explicitConstraints: ["Use the latest allowed October 2024 copy"],
+            inferredCues: ["retry helper", "number of attempts", "source may have changed"],
             needs: [
               { id: "need:semantics", kind: "question", text: "Does the retry count include the initial attempt?" },
             ],
             candidates: [
               {
-                id: "fs:retry-old", label: "Documentation Snapshot A", need: "need:semantics", corpus: "FreshStack", version: "Laravel 11", sourceStatus: "superseded", hardFit: true, rank: 0.96, origin: "search", generators: ["BM25", "vector"], bearing: "answers", direct: true, recommended: true,
+                id: "fs:retry-old", label: "Older saved copy of the docs", need: "need:semantics", corpus: "FreshStack", version: "Laravel 11", sourceStatus: "superseded", hardFit: true, rank: 0.96, origin: "search", generators: ["BM25", "vector"], bearing: "answers", direct: true, recommended: true,
                 content: "The count means retries after the first attempt.", assessments: ["source:official-docs", "status:superseded"],
               },
               {
-                id: "fs:retry-new", label: "Documentation Snapshot B", need: "need:semantics", corpus: "FreshStack", version: "Laravel 11", sourceStatus: "active", hardFit: true, rank: 0.68, origin: "completion", generators: ["Artifact Snapshot history", "supersedes relation"], bearing: "answers", direct: true, recommended: true,
-                content: "The count includes the initial attempt.", assessments: ["source:official-docs", "status:active", "check:supersedes-old-snapshot"], relation: "explicitly supersedes Snapshot A",
+                id: "fs:retry-new", label: "Corrected saved copy of the docs", need: "need:semantics", corpus: "FreshStack", version: "Laravel 11", sourceStatus: "active", hardFit: true, rank: 0.68, origin: "completion", generators: ["Artifact Snapshot history", "supersedes relation"], bearing: "answers", direct: true, recommended: true,
+                content: "The count includes the initial attempt.", assessments: ["source:official-docs", "status:active", "check:supersedes-old-snapshot"], relation: "the newer copy replaces the older one",
               },
             ],
           },
           {
             id: "concept-cue",
-            corpus: "Cross-domain sanity case",
-            title: "The task describes a design smell without naming the principle",
-            summary: "This is outside the Proving Corpus. It checks that the same flow can retrieve abstract guidance through attributed indicators instead of requiring the prompt to say YAGNI.",
+            corpus: "Extra design example",
+            title: "The task hints at YAGNI without saying it",
+            summary: "This extra example checks whether Groundset can find a useful design idea from the situation alone.",
             task: "There is one implementation. Should I add an interface now in case a plugin system appears later?",
             explicitConstraints: ["Prefer guidance with explicit exceptions"],
-            inferredCues: ["one implementation", "future-only requirement", "speculative interface"],
-            conceptMatch: { concept: "urn:entity:yagni", label: "YAGNI", reason: "The task cues match attributed indicators for speculative generalization." },
+            inferredCues: ["one implementation", "no current need", "possible future interface"],
+            conceptMatch: { concept: "urn:entity:yagni", label: "YAGNI", reason: "One implementation and a future-only plugin idea match examples of building too early." },
             needs: [
               { id: "need:guidance", kind: "question", text: "Which established design guidance applies to this choice?" },
             ],
             candidates: [
               {
-                id: "concept:yagni-indicator", label: "YAGNI indicator", need: "need:guidance", corpus: "Design knowledge", version: "v1", sourceStatus: "active", hardFit: true, rank: 0.78, origin: "search", generators: ["vector", "Concept indicator graph"], bearing: "answers", direct: true, recommended: true,
+                id: "concept:yagni-indicator", label: "A warning sign for YAGNI", need: "need:guidance", corpus: "Design knowledge", version: "v1", sourceStatus: "active", hardFit: true, rank: 0.78, origin: "search", generators: ["vector", "Concept indicator graph"], bearing: "answers", direct: true, recommended: true,
                 content: "A planned abstraction has no current second use or concrete requirement.", assessments: ["source:attributed-practice-guide", "scope:software-design"],
               },
               {
-                id: "concept:yagni-exception", label: "YAGNI exception", need: "need:guidance", corpus: "Design knowledge", version: "v1", sourceStatus: "active", hardFit: true, rank: 0.61, origin: "completion", generators: ["hasException relation"], bearing: "qualifies", direct: true, recommended: true,
+                id: "concept:yagni-exception", label: "When YAGNI may not apply", need: "need:guidance", corpus: "Design knowledge", version: "v1", sourceStatus: "active", hardFit: true, rank: 0.61, origin: "completion", generators: ["hasException relation"], bearing: "qualifies", direct: true, recommended: true,
                 content: "Do the work now when an external contract makes later change materially expensive.", assessments: ["source:attributed-practice-guide", "scope:software-design"], relation: "qualifies the matched Concept",
               },
             ],
@@ -571,14 +576,14 @@
           candidates: [],
           needStatus: [],
           packet: null,
-          history: ["Task received. No retrieval has happened."],
-          lastChange: "Ready to interpret the task.",
+          history: ["Task received. Groundset has not searched yet."],
+          lastChange: "Ready to break the task into questions.",
         });
 
         const requirePhase = (state, expected, actionLabel) => {
           if (state.phase === expected) return null;
           const next = clone(state);
-          next.lastChange = `${actionLabel} is not legal in ${state.phase}. Complete the preceding step or reset.`;
+          next.lastChange = `${actionLabel} cannot run yet. Do the earlier steps first, or reset.`;
           next.history.push(next.lastChange);
           return next;
         };
@@ -595,26 +600,26 @@
           next.constraints = scenario.explicitConstraints.map((text) => ({ source: "explicit", text }));
           next.inferredCues = scenario.inferredCues.map((text) => ({ source: "inferred-cue", text }));
           next.lastChange = state.choices.interpretation === "needs"
-            ? `Named ${next.needs.length} Information need${next.needs.length === 1 ? "" : "s"}. Inferred cues remain search hints, not hard constraints.`
-            : "Collapsed the task into one search query. Evidence can no longer report bearing per real need.";
+            ? `Found ${next.needs.length} question${next.needs.length === 1 ? "" : "s"} to answer. The clues help search, but they do not become rules.`
+            : "Turned the whole task into one search. Groundset can no longer track each question separately.";
           next.history.push(next.lastChange);
           return next;
         };
 
         const authorize = (state) => {
-          const illegal = requirePhase(state, "interpreted", "Authorize Corpus access");
+          const illegal = requirePhase(state, "interpreted", "Check access");
           if (illegal) return illegal;
           const scenario = scenarioById(state.scenarioId);
           const next = clone(state);
           next.phase = "authorized";
           next.authorizedCorpora = [scenario.corpus];
-          next.lastChange = `Authorized only ${scenario.corpus}. The search layer receives no handle for another Corpus boundary.`;
+          next.lastChange = `Search is limited to ${scenario.corpus}. Other private or unavailable data stays out of reach.`;
           next.history.push(next.lastChange);
           return next;
         };
 
         const retrieve = (state) => {
-          const illegal = requirePhase(state, "authorized", "Generate candidates");
+          const illegal = requirePhase(state, "authorized", "Search for sources");
           if (illegal) return illegal;
           const scenario = scenarioById(state.scenarioId);
           const next = clone(state);
@@ -622,17 +627,17 @@
           if (state.choices.retrieval === "blended") {
             candidates = candidates.slice().sort((a, b) => b.rank - a.rank).slice(0, 3);
           }
-          next.candidates = candidates.map((candidate) => ({ ...clone(candidate), state: "candidate", reasons: [`Generated by ${candidate.generators.join(" + ")}`] }));
+          next.candidates = candidates.map((candidate) => ({ ...clone(candidate), state: "candidate", reasons: [`Found by ${candidate.generators.join(" + ")}`] }));
           next.phase = "retrieved";
           next.lastChange = state.choices.retrieval === "per-need"
-            ? `Generated ${next.candidates.length} candidates across the named needs. Search scores are diagnostic only.`
-            : `Kept one blended top-3 list. A busy need can crowd out another need.`;
+            ? `Found ${next.candidates.length} possible sources across the separate questions.`
+            : `Kept one combined list of three sources. One question may crowd out another.`;
           next.history.push(next.lastChange);
           return next;
         };
 
         const applyConstraints = (state) => {
-          const illegal = requirePhase(state, "retrieved", "Apply hard constraints");
+          const illegal = requirePhase(state, "retrieved", "Remove bad matches");
           if (illegal) return illegal;
           const next = clone(state);
           next.candidates = next.candidates.map((candidate) => {
@@ -648,13 +653,13 @@
             if (state.choices.constraints === "penalty" && candidate.hardFit === false) {
               return { ...candidate, state: "eligible-penalized", reasons: [...candidate.reasons, `Penalty only: ${candidate.hardReason}`] };
             }
-            return { ...candidate, state: "eligible", reasons: [...candidate.reasons, "All recorded hard constraints satisfied"] };
+            return { ...candidate, state: "eligible", reasons: [...candidate.reasons, "Version, date, and source rules passed"] };
           });
           next.phase = "filtered";
           const rejected = next.candidates.filter((candidate) => candidate.state === "rejected").length;
           next.lastChange = state.choices.constraints === "gate"
-            ? `Rejected ${rejected} ineligible candidate${rejected === 1 ? "" : "s"} before ranking.`
-            : "Converted a hard constraint violation into a score penalty. The wrong material may still win.";
+            ? `Removed ${rejected} source${rejected === 1 ? "" : "s"} that broke a must-match rule.`
+            : "Only lowered the rank of bad matches. A wrong source may still win.";
           next.history.push(next.lastChange);
           return next;
         };
@@ -669,30 +674,30 @@
           }
           return candidates.map((candidate) => {
             if (!selectedIds.has(candidate.id)) return { ...candidate, state: candidate.state === "rejected" ? "rejected" : "not-selected" };
-            const baseReasons = candidate.reasons.filter((reason) => !reason.startsWith("Selected for ") && !reason.startsWith("Selected from search rank ") && !reason.startsWith("Assessment: "));
+            const baseReasons = candidate.reasons.filter((reason) => !reason.startsWith("Chosen because ") && !reason.startsWith("Chosen from search match ") && !reason.startsWith("Recorded check: "));
             const selectionReasons = state.choices.selection === "policy"
-              ? [`Selected for ${candidate.bearing} bearing`, ...candidate.assessments.map((assessment) => `Assessment: ${assessment}`)]
-              : [`Selected from search rank ${candidate.rank}`];
+              ? [`Chosen because it ${candidate.bearing} this question`, ...candidate.assessments.map((assessment) => `Recorded check: ${assessment}`)]
+              : [`Chosen from search match ${candidate.rank}`];
             return { ...candidate, state: "selected", reasons: [...baseReasons, ...selectionReasons] };
           });
         };
 
         const assess = (state) => {
-          const illegal = requirePhase(state, "filtered", "Assess and select");
+          const illegal = requirePhase(state, "filtered", "Choose sources");
           if (illegal) return illegal;
           const next = clone(state);
           next.candidates = selectCandidates(state);
           next.phase = "assessed";
           const count = next.candidates.filter((candidate) => candidate.state === "selected").length;
           next.lastChange = state.choices.selection === "policy"
-            ? `Selected ${count} candidates for a stated Evidence role using the reference policy and attributed Assessments.`
-            : `Selected ${count} candidates by similarity. Source authority and applicability have no decisive role.`;
+            ? `Chose ${count} source${count === 1 ? "" : "s"} after checking what each one proves and where it came from.`
+            : `Chose ${count} source${count === 1 ? "" : "s"} by wording alone. Version and source quality cannot decide the result.`;
           next.history.push(next.lastChange);
           return next;
         };
 
         const completeTrails = (state) => {
-          const illegal = requirePhase(state, "assessed", "Complete source trails");
+          const illegal = requirePhase(state, "assessed", "Follow related sources");
           if (illegal) return illegal;
           const scenario = scenarioById(state.scenarioId);
           const next = clone(state);
@@ -709,15 +714,15 @@
                   candidateState = "eligible-unknown";
                   reasons.push(candidate.hardReason);
                 } else {
-                  reasons.push("All recorded hard constraints satisfied");
+                  reasons.push("Version, date, and source rules passed");
                 }
                 return { ...clone(candidate), state: candidateState, reasons };
               });
             const combined = [...next.candidates, ...additions];
             next.candidates = selectCandidates(state, combined);
-            next.lastChange = `Added ${additions.length} related candidate${additions.length === 1 ? "" : "s"}, reapplied constraints, and reassessed the selection.`;
+            next.lastChange = `Found ${additions.length} related source${additions.length === 1 ? "" : "s"}, checked the rules again, and updated the choices.`;
           } else {
-            next.lastChange = "Stopped at direct search hits. Corrections, competing positions, and required evidence-set members remain unseen.";
+            next.lastChange = "Stopped at the first search hits. A correction, disagreement, or missing source may stay hidden.";
           }
           next.phase = "completed";
           next.history.push(next.lastChange);
@@ -725,7 +730,7 @@
         };
 
         const decideCoverage = (state) => {
-          const illegal = requirePhase(state, "completed", "Decide coverage");
+          const illegal = requirePhase(state, "completed", "Check the answer");
           if (illegal) return illegal;
           const scenario = scenarioById(state.scenarioId);
           const next = clone(state);
@@ -741,34 +746,34 @@
               return { need: need.id, coverage: "partial", disagreement: "unresolved", reason: scenario.missingInput.reason };
             }
             if (scenario.id === "laravel-superseded" && material.some((candidate) => candidate.id === "fs:retry-old") && material.some((candidate) => candidate.id === "fs:retry-new")) {
-              return { need: need.id, coverage: "covered", disagreement: "resolved by explicit supersession", reason: "A cited supersedes relation identifies the active Snapshot without erasing the prior answer." };
+              return { need: need.id, coverage: "covered", disagreement: "resolved by explicit supersession", reason: "The page history shows which saved copy replaced the older one." };
             }
             if (supports.length && contradicts.length) {
               const resolved = scenario.id === "laravel-superseded" && state.choices.completion === "expand";
-              return { need: need.id, coverage: "covered", disagreement: resolved ? "resolved by explicit supersession" : "unresolved", reason: resolved ? "A cited supersedes relation identifies the active Snapshot." : "Applicable selected material bears in both directions." };
+              return { need: need.id, coverage: "covered", disagreement: resolved ? "resolved by explicit supersession" : "unresolved", reason: resolved ? "The page history identifies the newer copy." : "The chosen sources disagree." };
             }
             if (supports.length || contradicts.length || qualifies.length) {
-              return { need: need.id, coverage: "covered", disagreement: "none", reason: "At least one applicable direct selection bears on this need." };
+              return { need: need.id, coverage: "covered", disagreement: "none", reason: "At least one chosen source directly answers this question." };
             }
-            return { need: need.id, coverage: "gap", disagreement: "none", reason: "No selected applicable material directly bears on this need." };
+            return { need: need.id, coverage: "gap", disagreement: "none", reason: "None of the chosen sources directly answers this question." };
           });
 
           if (state.choices.stopping === "fixed") {
             statuses.forEach((entry) => {
-              if (entry.coverage === "gap") entry.reason = "Fixed top-k stopped without proving whether more retrieval could cover this need.";
+              if (entry.coverage === "gap") entry.reason = "Groundset stopped after a fixed number of hits, so it does not know whether more search would answer this question.";
             });
           }
           next.needStatus = statuses;
           next.phase = "decided";
           const gaps = statuses.filter((entry) => entry.coverage === "gap").length;
           const conflicts = statuses.filter((entry) => entry.disagreement !== "none").length;
-          next.lastChange = `Marked ${gaps} gap${gaps === 1 ? "" : "s"} and ${conflicts} conflict or qualification state${conflicts === 1 ? "" : "s"}.`;
+          next.lastChange = `Found ${gaps} unanswered question${gaps === 1 ? "" : "s"} and ${conflicts} conflict${conflicts === 1 ? "" : "s"}.`;
           next.history.push(next.lastChange);
           return next;
         };
 
         const assemble = (state) => {
-          const illegal = requirePhase(state, "decided", "Assemble packet");
+          const illegal = requirePhase(state, "decided", "Build the answer pack");
           if (illegal) return illegal;
           const scenario = scenarioById(state.scenarioId);
           const next = clone(state);
@@ -832,20 +837,20 @@
           };
           next.packet = packet;
           next.phase = "assembled";
-          next.lastChange = `Assembled ${selected.length} Evidence item${selected.length === 1 ? "" : "s"}; the Agent receives no rejected candidates or retrieval scores.`;
+          next.lastChange = `Built an answer pack with ${selected.length} source${selected.length === 1 ? "" : "s"}. The AI does not see rejected sources or search scores.`;
           next.history.push(next.lastChange);
           return next;
         };
 
         const stepActions = [
-          { type: "INTERPRET", label: "1. Interpret task", run: interpret },
-          { type: "AUTHORIZE", label: "2. Authorize Corpus", run: authorize },
-          { type: "RETRIEVE", label: "3. Generate candidates", run: retrieve },
-          { type: "FILTER", label: "4. Apply constraints", run: applyConstraints },
-          { type: "ASSESS", label: "5. Assess and select", run: assess },
-          { type: "COMPLETE", label: "6. Complete trails", run: completeTrails },
-          { type: "DECIDE", label: "7. Decide coverage", run: decideCoverage },
-          { type: "ASSEMBLE", label: "8. Assemble packet", run: assemble },
+          { type: "INTERPRET", label: "1. Break up the task", run: interpret },
+          { type: "AUTHORIZE", label: "2. Check access", run: authorize },
+          { type: "RETRIEVE", label: "3. Search", run: retrieve },
+          { type: "FILTER", label: "4. Remove bad matches", run: applyConstraints },
+          { type: "ASSESS", label: "5. Choose sources", run: assess },
+          { type: "COMPLETE", label: "6. Follow related sources", run: completeTrails },
+          { type: "DECIDE", label: "7. Check the answer", run: decideCoverage },
+          { type: "ASSEMBLE", label: "8. Build the answer pack", run: assemble },
         ];
 
         const reduce = (state, action) => {
@@ -855,7 +860,7 @@
           if (action.type === "SET_CHOICE") {
             const nextChoices = { ...state.choices, [action.id]: action.value };
             const next = initialState(state.scenarioId, nextChoices);
-            next.lastChange = "Design choice changed. The Grounding Activity reset so the new behavior can run cleanly.";
+            next.lastChange = "Choice changed. The example reset so you can run it again.";
             return next;
           }
           if (action.type === "RUN_CURRENT") {
@@ -871,39 +876,39 @@
       const walkthroughs = [
         {
           id: "composite",
-          title: "Two-part proof",
+          title: "Two sources",
           scenarioId: "feverous-composite",
-          copy: "Watch Groundset split the claim into two needs. Hybrid retrieval and reserved budget keep the lower-ranked club evidence from disappearing behind Rivera biography hits.",
+          copy: "Groundset splits the claim into two questions and saves room for both answers. Otherwise, Rivera biography pages push the club result out.",
         },
         {
           id: "version",
           title: "Version trap",
           scenarioId: "laravel-version",
-          copy: "The Laravel 10 answer is the closest text match. A hard version constraint must remove it before policy selection.",
+          copy: "The Laravel 10 answer has the closest wording. Groundset must remove it because the project uses Laravel 11.",
         },
         {
           id: "conflict",
           title: "Hidden conflict",
           scenarioId: "feverous-conflict",
-          copy: "Direct hits appear to support both propositions. Completing the evidence trail reveals the architect table that contradicts one of them.",
+          copy: "The first sources support both parts of the claim. Following their links finds a table that disagrees about the architect.",
         },
         {
           id: "missing",
           title: "No answer",
           scenarioId: "feverous-missing",
-          copy: "Related biographies and award lists are not proof. The recommended flow produces a named gap and sends no filler to the model.",
+          copy: "Biographies and award pages are related, but they do not prove the claim. Groundset sends no filler to the AI.",
         },
         {
           id: "clarify",
           title: "Ask once",
           scenarioId: "laravel-ambiguous",
-          copy: "Laravel 10 and 11 are both valid under unknown Scope. Groundset returns the conditional evidence and one typed question about the missing version.",
+          copy: "Laravel 10 and 11 have different answers. Groundset shows both and asks which version the project uses.",
         },
         {
           id: "concept",
           title: "Unnamed idea",
           scenarioId: "concept-cue",
-          copy: "Concrete task cues retrieve an attributed Concept indicator and its exception. The task never says YAGNI.",
+          copy: "The task says there is one implementation and only a possible future plugin. Those clues lead to YAGNI and an important exception. The task never names YAGNI.",
         },
       ];
 
@@ -923,6 +928,79 @@
       };
 
       const currentScenario = () => GroundingPrototype.scenarios.find((scenario) => scenario.id === state.scenarioId);
+
+      const phaseLabel = (phase) => ({
+        received: "waiting",
+        interpreted: "task split up",
+        authorized: "access checked",
+        retrieved: "sources found",
+        filtered: "bad matches removed",
+        assessed: "sources chosen",
+        completed: "links checked",
+        decided: "answer checked",
+        assembled: "ready",
+      })[phase] || phase;
+
+      const coverageLabel = (coverage) => ({ covered: "complete", partial: "incomplete", gap: "no answer" })[coverage] || coverage;
+      const needKindLabel = (kind) => ({ proposition: "claim", question: "question" })[kind] || kind;
+      const conflictLabel = (conflict) => {
+        if (conflict === "none") return "none";
+        if (conflict === "unresolved") return "sources disagree";
+        if (conflict.startsWith("resolved")) return "correction found";
+        return conflict;
+      };
+      const bearingLabel = (bearing) => ({
+        supports: "supports",
+        answers: "answers",
+        contradicts: "disagrees with",
+        qualifies: "depends on",
+        context: "related only",
+      })[bearing] || bearing;
+      const sourceStateLabel = (sourceState) => ({
+        candidate: "found",
+        eligible: "passed checks",
+        "eligible-unknown": "version unknown",
+        "eligible-penalized": "bad match kept",
+        selected: "chosen",
+        "not-selected": "not needed",
+        rejected: "removed",
+      })[sourceState] || sourceState;
+      const questionLabel = (needId) => {
+        const index = currentScenario().needs.findIndex((need) => need.id === needId);
+        return index >= 0 ? `question ${index + 1}` : "task";
+      };
+      const humanizeReason = (reason) => reason
+        .replaceAll("Chosen because it supports this question", "Chosen because it supports the claim")
+        .replaceAll("Chosen because it contradicts this question", "Chosen because it disagrees with the claim")
+        .replaceAll("Chosen because it qualifies this question", "Chosen because the answer depends on it")
+        .replaceAll("Chosen because it context this question", "Chosen as background only")
+        .replaceAll("BM25", "keyword search")
+        .replaceAll("FTS", "text search")
+        .replaceAll("vector", "meaning search")
+        .replaceAll("entity graph", "related-source search")
+        .replaceAll("table index", "table search")
+        .replaceAll("symbol index", "code search")
+        .replaceAll("Artifact Snapshot history", "saved page history")
+        .replaceAll("supersedes relation", "replacement link")
+        .replaceAll("evidence-set relation", "linked proof")
+        .replaceAll("Concept indicator graph", "idea examples")
+        .replaceAll("hasException relation", "linked exception")
+        .replaceAll("dataset:evidence-set", "dataset marks this as proof")
+        .replaceAll("dataset:linked-evidence", "dataset links this as proof")
+        .replaceAll("dataset:distractor", "dataset marks this as a distraction")
+        .replaceAll("freshstack:accepted-answer", "Stack Overflow answer was accepted")
+        .replaceAll("source:official-docs", "official documentation")
+        .replaceAll("source:official-api", "official API documentation")
+        .replaceAll("source:attributed-practice-guide", "named practice guide")
+        .replaceAll("scope:laravel-10", "applies to Laravel 10")
+        .replaceAll("scope:laravel-11", "applies to Laravel 11")
+        .replaceAll("scope:software-design", "applies to software design")
+        .replaceAll("status:superseded", "an older copy exists")
+        .replaceAll("status:active", "current copy")
+        .replaceAll("check:table-cell-resolves", "exact table cell found")
+        .replaceAll("check:text-quote-resolves", "exact quote found")
+        .replaceAll("check:code-symbols-resolve", "named code exists")
+        .replaceAll("check:supersedes-old-snapshot", "new copy replaces the old one");
 
       const renderChoices = () => {
         document.querySelector("#choices").innerHTML = GroundingPrototype.choices.map((choice) => `
@@ -971,11 +1049,11 @@
         const gaps = state.needStatus.filter((need) => need.coverage === "gap").length;
         const disagreement = state.needStatus.find((need) => need.disagreement !== "none")?.disagreement || "none";
         const cards = [
-          ["Phase", state.phase],
-          ["Needs", state.needs.length || "not named"],
-          ["Candidates", state.candidates.length],
-          ["Selected", selected],
-          ["Gap / conflict", `${gaps} / ${disagreement}`],
+          ["Step", phaseLabel(state.phase)],
+          ["Questions", state.needs.length || "not split up"],
+          ["Sources found", state.candidates.length],
+          ["Sources chosen", selected],
+          ["Missing / conflict", `${gaps} / ${conflictLabel(disagreement)}`],
         ];
         document.querySelector("#state-strip").innerHTML = cards.map(([label, value]) => `
           <div class="state-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>
@@ -995,11 +1073,11 @@
         const verdict = document.querySelector("#verdict");
         verdict.className = `verdict ${departures.length || failed ? "warn" : "good"}`;
         if (failed) {
-          verdict.innerHTML = `<strong>The model received an answer-changing mistake.</strong> The current choices selected an inapplicable answer, hid a conflict, or padded an unsupported need.`;
+          verdict.innerHTML = `<strong>The AI received a source that can change the answer.</strong> These choices kept a wrong version, hid a conflict, or filled a missing answer with weak material.`;
         } else if (departures.length) {
-          verdict.innerHTML = `<strong>${departures.length} choice${departures.length === 1 ? "" : "s"} differ from the recommendation.</strong> Run the case and inspect whether Groundset still owns relevance filtering.`;
+          verdict.innerHTML = `<strong>${departures.length} choice${departures.length === 1 ? "" : "s"} differ from the recommendation.</strong> Run the example and check what reaches the AI.`;
         } else {
-          verdict.innerHTML = `<strong>Recommended flow.</strong> Groundset owns eligibility, selection, conflict completion, coverage, and follow-up. The model receives the result, not the candidate pool.`;
+          verdict.innerHTML = `<strong>Recommended choices.</strong> Groundset handles the filtering. The AI gets the chosen sources and any missing answers or conflicts, not the whole search result.`;
         }
       };
 
@@ -1008,22 +1086,22 @@
         document.querySelector("#scenario-title").textContent = scenario.title;
         document.querySelector("#scenario-summary").textContent = scenario.summary;
         document.querySelector("#task-view").innerHTML = `
-          <h4>Caller task</h4>
+          <h4>Task</h4>
           <blockquote>${escapeHtml(scenario.task)}</blockquote>
-          <p class="compact"><strong>Explicit inputs</strong></p>
-          ${scenario.explicitConstraints.length ? `<ul>${scenario.explicitConstraints.map((text) => `<li>${escapeHtml(text)}</li>`).join("")}</ul>` : `<p class="notice">No version or date constraint was supplied.</p>`}
-          <p class="compact"><strong>Concrete cues</strong></p>
+          <p class="compact"><strong>Facts Groundset must obey</strong></p>
+          ${scenario.explicitConstraints.length ? `<ul>${scenario.explicitConstraints.map((text) => `<li>${escapeHtml(text)}</li>`).join("")}</ul>` : `<p class="notice">The task does not say which version or date applies.</p>`}
+          <p class="compact"><strong>Clues in the task</strong></p>
           <ul>${scenario.inferredCues.map((text) => `<li>${escapeHtml(text)}</li>`).join("")}</ul>
         `;
 
         if (!state.needs.length) {
-          document.querySelector("#needs-view").innerHTML = `<h4>Interpretation</h4><p>No Information needs or hard constraints have been recorded yet.</p>`;
+          document.querySelector("#needs-view").innerHTML = `<h4>What Groundset understood</h4><p>Groundset has not split the task into questions yet.</p>`;
           return;
         }
         document.querySelector("#needs-view").innerHTML = `
-          <h4>Interpretation</h4>
-          <ol>${state.needs.map((need) => `<li><span class="badge">${escapeHtml(need.kind)}</span>${escapeHtml(need.text)}</li>`).join("")}</ol>
-          <p><strong>Hard constraints:</strong> ${state.constraints.length ? state.constraints.map((constraint) => escapeHtml(constraint.text)).join("; ") : "none supplied"}</p>
+          <h4>Questions Groundset will answer</h4>
+          <ol>${state.needs.map((need) => `<li><span class="badge">${escapeHtml(needKindLabel(need.kind))}</span>${escapeHtml(need.text)}</li>`).join("")}</ol>
+          <p><strong>Must-match rules:</strong> ${state.constraints.length ? state.constraints.map((constraint) => escapeHtml(constraint.text)).join("; ") : "none supplied"}</p>
           <p><strong>Last change:</strong> ${escapeHtml(state.lastChange)}</p>
         `;
       };
@@ -1037,58 +1115,58 @@
 
       const renderCandidates = () => {
         if (!state.candidates.length) {
-          document.querySelector("#candidate-view").innerHTML = `<div class="panel"><p>No candidates are visible. Corpus authorization and retrieval have not both completed.</p></div>`;
+          document.querySelector("#candidate-view").innerHTML = `<div class="panel"><p>No sources yet. Check access, then search.</p></div>`;
           return;
         }
         document.querySelector("#candidate-view").innerHTML = `
           <table class="pipeline">
-            <thead><tr><th>Material</th><th>Need and Scope</th><th>Pipeline state</th><th>Why</th></tr></thead>
+            <thead><tr><th>Source</th><th>Question and version</th><th>Decision</th><th>Why</th></tr></thead>
             <tbody>
               ${state.candidates.map((candidate) => `
                 <tr>
                   <td><strong>${escapeHtml(candidate.label)}</strong><br />${escapeHtml(candidate.content)}</td>
-                  <td>${escapeHtml(candidate.need)}<br />${escapeHtml(candidate.version)}<br /><span class="badge">${escapeHtml(candidate.bearing)}</span></td>
-                  <td class="${candidateClass(candidate.state)}"><strong>${escapeHtml(candidate.state)}</strong><br />search rank ${candidate.rank}</td>
-                  <td><ul class="compact">${candidate.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("")}</ul></td>
+                  <td>${escapeHtml(questionLabel(candidate.need))}<br />${escapeHtml(candidate.version)}<br /><span class="badge">${escapeHtml(bearingLabel(candidate.bearing))}</span></td>
+                  <td class="${candidateClass(candidate.state)}"><strong>${escapeHtml(sourceStateLabel(candidate.state))}</strong><br />search match ${candidate.rank}</td>
+                  <td><ul class="compact">${candidate.reasons.map((reason) => `<li>${escapeHtml(humanizeReason(reason))}</li>`).join("")}</ul></td>
                 </tr>
               `).join("")}
             </tbody>
           </table>
-          <p class="notice">Search ranks stay here for inspection. The Evidence packet never sends them to the model.</p>
+          <p class="notice">These match scores are here so you can inspect the search. The AI never sees them.</p>
         `;
       };
 
       const renderPacket = () => {
         const view = document.querySelector("#packet-view");
         if (!state.packet) {
-          view.innerHTML = `<p>No packet yet. Groundset must finish coverage decisions before assembly.</p>`;
+          view.innerHTML = `<p>No answer pack yet. Run through "Check the answer" first.</p>`;
           return;
         }
         const packet = state.packet;
         const concept = packet.conceptMatches.length
-          ? `<div class="good-note"><strong>Concept match:</strong> ${escapeHtml(packet.conceptMatches[0].label)}. ${escapeHtml(packet.conceptMatches[0].reason)}</div>`
+          ? `<div class="good-note"><strong>Matched idea:</strong> ${escapeHtml(packet.conceptMatches[0].label)}. ${escapeHtml(packet.conceptMatches[0].reason)}</div>`
           : "";
         const evidence = packet.evidence.length
           ? packet.evidence.map((item) => `
               <div class="evidence-item">
                 <h4>${escapeHtml(item.label)}</h4>
-                <span class="badge ${item.bearing.kind === "contradicts" ? "rejected" : "selected"}">${escapeHtml(item.bearing.kind)}</span>
-                <span class="badge">${escapeHtml(item.bearing.need)}</span>
+                <span class="badge ${item.bearing.kind === "contradicts" ? "rejected" : "selected"}">${escapeHtml(bearingLabel(item.bearing.kind))}</span>
+                <span class="badge">${escapeHtml(questionLabel(item.bearing.need))}</span>
                 <p>${escapeHtml(item.content)}</p>
                 <p><strong>Source:</strong> ${escapeHtml(item.source)}</p>
               </div>
             `).join("")
-          : `<p class="notice">No weak context was added to fill the budget.</p>`;
+          : `<p class="notice">Groundset found no strong source, so it sent nothing.</p>`;
         const gaps = packet.gaps.length
-          ? `<div class="notice"><strong>Gap:</strong> ${packet.gaps.map((gap) => `${escapeHtml(gap.need)}: ${escapeHtml(gap.reason)}`).join("; ")}</div>`
+          ? `<div class="notice"><strong>Missing answer:</strong> ${packet.gaps.map((gap) => `${escapeHtml(questionLabel(gap.need))}. ${escapeHtml(gap.reason)}`).join("; ")}</div>`
           : "";
         const followups = packet.followUps.length
-          ? `<div class="notice"><strong>Focused follow-up:</strong> ${escapeHtml(packet.followUps[0].question)} ${escapeHtml(packet.followUps[0].reason)}</div>`
+          ? `<div class="notice"><strong>Question for the caller:</strong> ${escapeHtml(packet.followUps[0].question)} ${escapeHtml(packet.followUps[0].reason)}</div>`
           : "";
         view.innerHTML = `
-          <p><span class="badge">coverage ${escapeHtml(packet.status.coverage)}</span><span class="badge">disagreement ${escapeHtml(packet.status.disagreement)}</span></p>
+          <p><span class="badge">answer ${escapeHtml(coverageLabel(packet.status.coverage))}</span><span class="badge">conflict ${escapeHtml(conflictLabel(packet.status.disagreement))}</span></p>
           ${concept}${evidence}${gaps}${followups}
-          <p><strong>Budget:</strong> ${packet.budget.used} of ${packet.budget.items} items, packed by ${escapeHtml(packet.budget.strategy)}.</p>
+          <p><strong>Size limit:</strong> ${packet.budget.used} of ${packet.budget.items} source slots used.</p>
         `;
       };
 
@@ -1137,7 +1215,7 @@
         renderPacket();
         renderWalkthroughs();
         document.querySelector("#state-json").textContent = JSON.stringify(state, null, 2);
-        document.querySelector("#footer-state").textContent = `Throwaway prototype. ${state.lastChange}`;
+        document.querySelector("#footer-state").textContent = `Rough demo. ${state.lastChange}`;
       };
 
       document.querySelector("#run").addEventListener("click", () => {
