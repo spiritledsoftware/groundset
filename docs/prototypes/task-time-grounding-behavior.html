@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Groundset task-time Grounding, throwaway prototype</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        background: #f4f1e8;
+        color: #1d211e;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      button { color: inherit; font: inherit; }
+
+      header {
+        border-bottom: 2px solid #1d211e;
+        padding: 22px clamp(16px, 4vw, 48px);
+      }
+
+      header h1 {
+        font-size: clamp(30px, 5vw, 58px);
+        line-height: 1.02;
+        margin: 8px 0;
+        max-width: 20ch;
+      }
+
+      header p { line-height: 1.55; margin-bottom: 0; max-width: 92ch; }
+      .warning { color: #8b2c20; font-weight: 700; text-transform: uppercase; }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
+        min-height: calc(100vh - 190px);
+      }
+
+      aside {
+        border-right: 2px solid #1d211e;
+        padding: 20px;
+      }
+
+      aside h2, .eyebrow, section h3 {
+        font-size: 12px;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+      }
+
+      .choice { border-top: 1px solid #1d211e; padding: 14px 0; }
+      .choice h3 { font-size: 13px; margin: 0 0 9px; }
+      .choice p { font-size: 12px; line-height: 1.45; margin: 8px 0 0; }
+      .choice-options { display: grid; gap: 6px; grid-template-columns: 1fr 1fr; }
+
+      button {
+        background: transparent;
+        border: 1px solid #1d211e;
+        cursor: pointer;
+        padding: 9px 10px;
+        text-align: left;
+      }
+
+      button:hover { background: #e5e0d3; }
+      button:focus-visible { outline: 3px solid #34785a; outline-offset: 2px; }
+      button[aria-pressed="true"], button[aria-current="true"] {
+        background: #1d211e;
+        color: #fffdf6;
+      }
+
+      button:disabled { cursor: not-allowed; opacity: .42; }
+      .reset, .run { margin-top: 10px; width: 100%; }
+      .run { background: #34785a; border-color: #34785a; color: #fff; font-weight: 700; }
+
+      article { min-width: 0; padding: clamp(18px, 4vw, 48px); }
+      article h2 { font-size: clamp(24px, 4vw, 42px); margin: 0 0 8px; }
+      article > p { line-height: 1.55; max-width: 92ch; }
+
+      .state-strip {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        margin: 22px 0;
+      }
+
+      .state-card { border: 1px solid #1d211e; padding: 11px; }
+      .state-card span { display: block; font-size: 11px; text-transform: uppercase; }
+      .state-card strong { display: block; margin-top: 5px; }
+
+      .verdict {
+        border: 2px solid currentColor;
+        line-height: 1.5;
+        margin: 20px 0;
+        padding: 14px 16px;
+      }
+
+      .verdict.good { color: #1f6b43; }
+      .verdict.warn { color: #8b4a10; }
+
+      .fixture-toolbar, .action-toolbar, .walkthrough-tabs, .walkthrough-steps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .fixture-toolbar, .action-toolbar { margin: 12px 0 18px; }
+      .fixture-toolbar button, .action-toolbar button { padding: 7px 9px; }
+      .action-toolbar button { min-width: 118px; }
+
+      .grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: minmax(320px, .95fr) minmax(0, 1.05fr);
+      }
+
+      section { border-top: 1px solid #1d211e; min-width: 0; }
+      section p, li { line-height: 1.5; }
+      ul, ol { padding-left: 22px; }
+      .compact { margin: 7px 0; }
+
+      .panel, .packet-view {
+        border: 1px solid #1d211e;
+        margin-bottom: 16px;
+        padding: 14px;
+      }
+
+      .panel h4, .evidence-item h4 { font-size: 17px; margin: 0 0 8px; }
+      .panel blockquote { border-left: 3px solid #34785a; margin: 10px 0; padding-left: 12px; }
+      .notice { background: #f2e4c9; border-left: 3px solid #8b4a10; padding: 10px 12px; }
+      .good-note { background: #e2efe7; border-left: 3px solid #1f6b43; padding: 10px 12px; }
+
+      .pipeline {
+        border-collapse: collapse;
+        font-size: 12px;
+        margin-bottom: 16px;
+        width: 100%;
+      }
+
+      .pipeline th, .pipeline td {
+        border: 1px solid #8e8a80;
+        padding: 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .pipeline th { background: #e5e0d3; }
+      .badge {
+        border: 1px solid currentColor;
+        display: inline-block;
+        font-size: 11px;
+        margin: 0 6px 5px 0;
+        padding: 3px 6px;
+        text-transform: uppercase;
+      }
+
+      .selected { color: #1f6b43; }
+      .rejected { color: #8b2c20; }
+      .pending { color: #174f90; }
+      .qualified { color: #8b4a10; }
+      .evidence-item { background: #fffdf6; border: 1px solid #6d6a60; padding: 13px; }
+      .evidence-item + .evidence-item { margin-top: 10px; }
+      .evidence-item p { margin: 7px 0; }
+
+      pre {
+        background: #202720;
+        color: #eaf0e5;
+        font-size: 12px;
+        max-height: 760px;
+        overflow: auto;
+        padding: 16px;
+        white-space: pre-wrap;
+      }
+
+      .walkthroughs { margin-top: 28px; }
+      .walkthrough-tabs button { font-weight: 700; }
+      .walkthrough-copy { max-width: 88ch; }
+      .walkthrough-steps button.done { opacity: .45; text-decoration: line-through; }
+
+      footer {
+        background: #d7d2c5;
+        border-top: 2px solid #1d211e;
+        font-size: 12px;
+        line-height: 1.5;
+        padding: 10px clamp(16px, 4vw, 48px);
+      }
+
+      @media (max-width: 1050px) {
+        main { display: block; }
+        aside { border-bottom: 2px solid #1d211e; border-right: 0; }
+        .state-strip, .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="warning">Throwaway decision prototype</div>
+      <h1>How should Grounding decide what the model sees?</h1>
+      <p>
+        This prototype tests the task-time flow between a request and an Evidence packet. It asks
+        whether Groundset can do the filtering itself: name the task's Information needs, enforce
+        hard constraints, find candidates, finish their source and conflict trails, decide what is
+        sufficiently supported, and ask for one missing input when it cannot finish safely.
+      </p>
+    </header>
+
+    <main>
+      <aside>
+        <h2>Free play: disputed choices</h2>
+        <div id="choices"></div>
+        <button class="run" id="run">Run current flow</button>
+        <button class="reset" id="reset">Reset this case</button>
+        <button class="reset" id="defaults">Reset to recommendations</button>
+      </aside>
+
+      <article>
+        <div class="eyebrow">Current stress case</div>
+        <h2 id="scenario-title"></h2>
+        <p id="scenario-summary"></p>
+        <p class="notice">
+          These are representative records shaped like the accepted FEVEROUS and FreshStack
+          Collections, not copied benchmark entries. Source and baseline eligibility remains a
+          separate research decision.
+        </p>
+
+        <div class="state-strip" id="state-strip"></div>
+        <div class="verdict" id="verdict"></div>
+
+        <section>
+          <h3>Proving Corpus cases</h3>
+          <div class="fixture-toolbar" id="scenario-buttons"></div>
+        </section>
+
+        <section>
+          <h3>Drive the Grounding Activity</h3>
+          <div class="action-toolbar" id="action-buttons"></div>
+        </section>
+
+        <div class="grid">
+          <div>
+            <section>
+              <h3>Task and interpreted state</h3>
+              <div class="panel" id="task-view"></div>
+              <div class="panel" id="needs-view"></div>
+            </section>
+
+            <section>
+              <h3>Candidate pipeline</h3>
+              <div id="candidate-view"></div>
+            </section>
+
+            <section>
+              <h3>Evidence packet result</h3>
+              <div class="packet-view" id="packet-view"></div>
+            </section>
+          </div>
+
+          <section>
+            <h3>Full Grounding state</h3>
+            <pre id="state-json" tabindex="0"></pre>
+          </section>
+        </div>
+
+        <section class="walkthroughs">
+          <h3>Guided walkthroughs</h3>
+          <div class="walkthrough-tabs" id="walkthrough-tabs"></div>
+          <p class="walkthrough-copy" id="walkthrough-copy"></p>
+          <div class="walkthrough-steps" id="walkthrough-steps"></div>
+        </section>
+      </article>
+    </main>
+
+    <footer id="footer-state"></footer>
+
+    <script>
+      const GroundingPrototype = (() => {
+        const phases = [
+          "received",
+          "interpreted",
+          "authorized",
+          "retrieved",
+          "filtered",
+          "assessed",
+          "completed",
+          "decided",
+          "assembled",
+        ];
+
+        const recommended = Object.freeze({
+          interpretation: "needs",
+          constraints: "gate",
+          retrieval: "per-need",
+          selection: "policy",
+          completion: "expand",
+          stopping: "coverage",
+          packing: "reserve",
+          followup: "groundset",
+        });
+
+        const choices = [
+          {
+            id: "interpretation",
+            title: "Interpret the task",
+            options: [
+              { value: "needs", label: "Named needs" },
+              { value: "query", label: "One query" },
+            ],
+            note: "Groundset should name what must be answered instead of searching the task as one blob.",
+          },
+          {
+            id: "constraints",
+            title: "Apply hard constraints",
+            options: [
+              { value: "gate", label: "Reject first" },
+              { value: "penalty", label: "Score penalty" },
+            ],
+            note: "Access, source status, and explicit version or date requirements are eligibility rules, not preferences.",
+          },
+          {
+            id: "retrieval",
+            title: "Generate candidates",
+            options: [
+              { value: "per-need", label: "Hybrid per need" },
+              { value: "blended", label: "One top-k" },
+            ],
+            note: "Text, vector, graph, and structural indexes generate candidates for each need.",
+          },
+          {
+            id: "selection",
+            title: "Select material",
+            options: [
+              { value: "policy", label: "Policy + roles" },
+              { value: "similarity", label: "Similarity rank" },
+            ],
+            note: "Selection should use Scope, provenance, Assessments, source status, and the material's job in the answer.",
+          },
+          {
+            id: "completion",
+            title: "Finish source trails",
+            options: [
+              { value: "expand", label: "Expand relations" },
+              { value: "hits", label: "Keep hits" },
+            ],
+            note: "Selected hits can point to required evidence sets, contradictions, corrections, or superseding material.",
+          },
+          {
+            id: "stopping",
+            title: "Know when to stop",
+            options: [
+              { value: "coverage", label: "Per-need status" },
+              { value: "fixed", label: "Fixed top-k" },
+            ],
+            note: "Stop when each need is covered, qualified, conflicted, or honestly unsupported.",
+          },
+          {
+            id: "packing",
+            title: "Spend the packet budget",
+            options: [
+              { value: "reserve", label: "Reserve by need" },
+              { value: "global", label: "Global rank" },
+            ],
+            note: "Reserve room for every need, exact proof, and relevant competing positions before adding context.",
+          },
+          {
+            id: "followup",
+            title: "Handle missing input",
+            options: [
+              { value: "groundset", label: "Typed follow-up" },
+              { value: "model", label: "Let model decide" },
+            ],
+            note: "Groundset should ask for one answer-changing detail instead of handing ambiguity to the model.",
+          },
+        ];
+
+        const scenarios = [
+          {
+            id: "feverous-composite",
+            corpus: "FEVEROUS core",
+            title: "A claim needs both a sentence and a table cell",
+            summary: "A FEVEROUS-style verification task has two independent propositions. One popular page can crowd the other evidence out of a single blended top-k.",
+            task: "Verify: The club hired Rivera in 2011, and it won the cup that season.",
+            explicitConstraints: ["Use the frozen December 2020 FEVEROUS Snapshot", "Cite the exact evidence set"],
+            inferredCues: ["two propositions", "same season", "person and club entities"],
+            needs: [
+              { id: "need:hire", kind: "proposition", text: "The club hired Rivera in 2011." },
+              { id: "need:cup", kind: "proposition", text: "The club won the cup in 2011." },
+            ],
+            candidates: [
+              {
+                id: "fv:rivera-table", label: "Rivera career table, 2011 row", need: "need:hire", corpus: "FEVEROUS", version: "Dec 2020", sourceStatus: "active", hardFit: true, rank: 0.91, origin: "search", generators: ["BM25", "table index"], bearing: "supports", direct: true, recommended: true,
+                content: "2011 | River Club | Manager", assessments: ["dataset:evidence-set", "check:table-cell-resolves"],
+              },
+              {
+                id: "fv:club-cup", label: "River Club history sentence", need: "need:cup", corpus: "FEVEROUS", version: "Dec 2020", sourceStatus: "active", hardFit: true, rank: 0.64, origin: "search", generators: ["FTS", "entity graph"], bearing: "supports", direct: true, recommended: true,
+                content: "River Club won the national cup in 2011.", assessments: ["dataset:evidence-set", "check:text-quote-resolves"],
+              },
+              {
+                id: "fv:rivera-bio", label: "Rivera biography lead", need: "need:hire", corpus: "FEVEROUS", version: "Dec 2020", sourceStatus: "active", hardFit: true, rank: 0.89, origin: "search", generators: ["BM25", "vector"], bearing: "context", direct: false, recommended: false,
+                content: "Rivera is a football manager.", assessments: ["dataset:distractor"],
+              },
+              {
+                id: "fv:rivera-awards", label: "Rivera awards section", need: "need:hire", corpus: "FEVEROUS", version: "Dec 2020", sourceStatus: "active", hardFit: true, rank: 0.87, origin: "search", generators: ["BM25"], bearing: "context", direct: false, recommended: false,
+                content: "Rivera received a coaching award in 2014.", assessments: ["dataset:distractor"],
+              },
+              {
+                id: "fv:rivera-youth", label: "Rivera youth career", need: "need:hire", corpus: "FEVEROUS", version: "Dec 2020", sourceStatus: "active", hardFit: true, rank: 0.83, origin: "search", generators: ["vector"], bearing: "context", direct: false, recommended: false,
+                content: "Rivera played youth football before coaching.", assessments: ["dataset:distractor"],
+              },
+            ],
+          },
+          {
+            id: "feverous-conflict",
+            corpus: "FEVEROUS core",
+            title: "The first hit supports the claim, but its source trail contains a refutation",
+            summary: "The direct hit looks decisive. Completing the linked evidence set reveals a second source that contradicts one part of the claim.",
+            task: "Verify: Northbridge opened in 1986 and was designed by Hall.",
+            explicitConstraints: ["Use the frozen December 2020 FEVEROUS Snapshot", "Report support and refutation separately"],
+            inferredCues: ["compound claim", "opening date", "architect attribution"],
+            needs: [
+              { id: "need:date", kind: "proposition", text: "Northbridge opened in 1986." },
+              { id: "need:architect", kind: "proposition", text: "Hall designed Northbridge." },
+            ],
+            candidates: [
+              {
+                id: "fv:bridge-lead", label: "Northbridge article lead", need: "need:date", corpus: "FEVEROUS", version: "Dec 2020", sourceStatus: "active", hardFit: true, rank: 0.94, origin: "search", generators: ["BM25", "vector"], bearing: "supports", direct: true, recommended: true,
+                content: "Northbridge opened to traffic in 1986.", assessments: ["dataset:evidence-set"],
+              },
+              {
+                id: "fv:hall-profile", label: "Hall profile", need: "need:architect", corpus: "FEVEROUS", version: "Dec 2020", sourceStatus: "active", hardFit: true, rank: 0.88, origin: "search", generators: ["BM25"], bearing: "supports", direct: true, recommended: true,
+                content: "Hall designed the Northbridge project.", assessments: ["dataset:linked-evidence"],
+              },
+              {
+                id: "fv:bridge-architect", label: "Northbridge architect table", need: "need:architect", corpus: "FEVEROUS", version: "Dec 2020", sourceStatus: "active", hardFit: true, rank: 0.52, origin: "completion", generators: ["evidence-set relation", "table index"], bearing: "contradicts", direct: true, recommended: true,
+                content: "Architect | Dana Shah", assessments: ["dataset:evidence-set", "check:table-cell-resolves"], relation: "completes the cited evidence set",
+              },
+            ],
+          },
+          {
+            id: "feverous-missing",
+            corpus: "FEVEROUS core",
+            title: "Search finds the subject but not the claimed fact",
+            summary: "Several sources are related to the person. None states the award claim. Groundset must return a gap instead of padding the packet.",
+            task: "Verify: Dr. Sen received the Alder Prize in 2008.",
+            explicitConstraints: ["Use the frozen December 2020 FEVEROUS Snapshot"],
+            inferredCues: ["award", "person", "year"],
+            needs: [
+              { id: "need:award", kind: "proposition", text: "Dr. Sen received the Alder Prize in 2008." },
+            ],
+            candidates: [
+              {
+                id: "fv:sen-bio", label: "Dr. Sen biography", need: "need:award", corpus: "FEVEROUS", version: "Dec 2020", sourceStatus: "active", hardFit: true, rank: 0.93, origin: "search", generators: ["BM25", "entity graph"], bearing: "context", direct: false, recommended: false,
+                content: "Dr. Sen is a chemist born in 1968.", assessments: ["dataset:distractor"],
+              },
+              {
+                id: "fv:alder-prize", label: "Alder Prize recipients", need: "need:award", corpus: "FEVEROUS", version: "Dec 2020", sourceStatus: "active", hardFit: true, rank: 0.81, origin: "search", generators: ["FTS", "table index"], bearing: "context", direct: false, recommended: false,
+                content: "The 2008 recipient row names another person.", assessments: ["dataset:distractor"],
+              },
+              {
+                id: "fv:sen-award", label: "Dr. Sen award list", need: "need:award", corpus: "FEVEROUS", version: "Dec 2020", sourceStatus: "active", hardFit: true, rank: 0.76, origin: "search", generators: ["vector"], bearing: "context", direct: false, recommended: false,
+                content: "The list contains awards from 2010 and 2016.", assessments: ["dataset:distractor"],
+              },
+            ],
+          },
+          {
+            id: "laravel-version",
+            corpus: "FreshStack Laravel 10/11",
+            title: "An older answer ranks first for a Laravel 11 project",
+            summary: "The repository exposes Laravel 11 in its lockfile. The highly similar Laravel 10 answer is ineligible, even if its wording matches better.",
+            task: "In this repository, where should I register a middleware alias?",
+            explicitConstraints: ["composer.lock resolves laravel/framework 11.4", "Use sources valid for Laravel 11"],
+            inferredCues: ["middleware alias", "current repository"],
+            needs: [
+              { id: "need:procedure", kind: "question", text: "Where does a Laravel 11 application register a middleware alias?" },
+            ],
+            candidates: [
+              {
+                id: "fs:so-kernel", label: "Accepted Stack Overflow answer", need: "need:procedure", corpus: "FreshStack", version: "Laravel 10", sourceStatus: "active", hardFit: false, hardReason: "Version contradicts the repository lockfile", rank: 0.97, origin: "search", generators: ["BM25", "vector"], bearing: "answers", direct: true, recommended: false,
+                content: "Add the alias to app/Http/Kernel.php.", assessments: ["freshstack:accepted-answer", "scope:laravel-10"],
+              },
+              {
+                id: "fs:l11-middleware", label: "Laravel 11 middleware documentation", need: "need:procedure", corpus: "FreshStack", version: "Laravel 11", sourceStatus: "active", hardFit: true, rank: 0.84, origin: "search", generators: ["FTS", "symbol index"], bearing: "answers", direct: true, recommended: true,
+                content: "Define middleware aliases in bootstrap/app.php using withMiddleware(...).", assessments: ["source:official-docs", "scope:laravel-11", "check:code-symbols-resolve"],
+              },
+              {
+                id: "fs:l11-api", label: "Laravel 11 Application API", need: "need:procedure", corpus: "FreshStack", version: "Laravel 11", sourceStatus: "active", hardFit: true, rank: 0.73, origin: "search", generators: ["symbol index"], bearing: "supports", direct: true, recommended: true,
+                content: "Application::withMiddleware accepts a configuration callback.", assessments: ["source:official-api", "scope:laravel-11"],
+              },
+            ],
+          },
+          {
+            id: "laravel-ambiguous",
+            corpus: "FreshStack Laravel 10/11",
+            title: "The answer changes by version, but the caller did not supply one",
+            summary: "Both answers are legitimate in their own Scope. Groundset can retrieve both, qualify them, and ask for the one missing fact that changes the answer.",
+            task: "Where do I register a middleware alias in Laravel?",
+            explicitConstraints: [],
+            inferredCues: ["middleware alias", "Laravel version not supplied"],
+            missingInput: { key: "frameworkVersion", question: "Which Laravel major version does the project use?", reason: "Laravel 10 and 11 register middleware aliases in different files." },
+            needs: [
+              { id: "need:procedure", kind: "question", text: "Where does this Laravel application register a middleware alias?" },
+            ],
+            candidates: [
+              {
+                id: "fs:l10-kernel", label: "Laravel 10 middleware documentation", need: "need:procedure", corpus: "FreshStack", version: "Laravel 10", sourceStatus: "active", hardFit: "unknown", hardReason: "Caller version is unknown", rank: 0.91, origin: "search", generators: ["BM25", "FTS"], bearing: "qualifies", direct: true, recommended: true,
+                content: "Laravel 10 registers aliases in app/Http/Kernel.php.", assessments: ["source:official-docs", "scope:laravel-10"],
+              },
+              {
+                id: "fs:l11-bootstrap", label: "Laravel 11 middleware documentation", need: "need:procedure", corpus: "FreshStack", version: "Laravel 11", sourceStatus: "active", hardFit: "unknown", hardReason: "Caller version is unknown", rank: 0.88, origin: "search", generators: ["BM25", "FTS"], bearing: "qualifies", direct: true, recommended: true,
+                content: "Laravel 11 registers aliases in bootstrap/app.php.", assessments: ["source:official-docs", "scope:laravel-11"],
+              },
+            ],
+          },
+          {
+            id: "laravel-superseded",
+            corpus: "FreshStack lifecycle fixture",
+            title: "A later source corrects a stale answer at the same URL",
+            summary: "The search hit was captured before a correction. Following its Artifact and supersession trail finds the newer immutable Snapshot and records the disagreement as resolved.",
+            task: "Does the framework's retry helper include the first attempt in its count?",
+            explicitConstraints: ["Use the latest eligible October 2024 lifecycle Snapshot"],
+            inferredCues: ["retry helper", "attempt count", "source may have changed"],
+            needs: [
+              { id: "need:semantics", kind: "question", text: "Does the retry count include the initial attempt?" },
+            ],
+            candidates: [
+              {
+                id: "fs:retry-old", label: "Documentation Snapshot A", need: "need:semantics", corpus: "FreshStack", version: "Laravel 11", sourceStatus: "superseded", hardFit: true, rank: 0.96, origin: "search", generators: ["BM25", "vector"], bearing: "answers", direct: true, recommended: true,
+                content: "The count means retries after the first attempt.", assessments: ["source:official-docs", "status:superseded"],
+              },
+              {
+                id: "fs:retry-new", label: "Documentation Snapshot B", need: "need:semantics", corpus: "FreshStack", version: "Laravel 11", sourceStatus: "active", hardFit: true, rank: 0.68, origin: "completion", generators: ["Artifact Snapshot history", "supersedes relation"], bearing: "answers", direct: true, recommended: true,
+                content: "The count includes the initial attempt.", assessments: ["source:official-docs", "status:active", "check:supersedes-old-snapshot"], relation: "explicitly supersedes Snapshot A",
+              },
+            ],
+          },
+          {
+            id: "concept-cue",
+            corpus: "Cross-domain sanity case",
+            title: "The task describes a design smell without naming the principle",
+            summary: "This is outside the Proving Corpus. It checks that the same flow can retrieve abstract guidance through attributed indicators instead of requiring the prompt to say YAGNI.",
+            task: "There is one implementation. Should I add an interface now in case a plugin system appears later?",
+            explicitConstraints: ["Prefer guidance with explicit exceptions"],
+            inferredCues: ["one implementation", "future-only requirement", "speculative interface"],
+            conceptMatch: { concept: "urn:entity:yagni", label: "YAGNI", reason: "The task cues match attributed indicators for speculative generalization." },
+            needs: [
+              { id: "need:guidance", kind: "question", text: "Which established design guidance applies to this choice?" },
+            ],
+            candidates: [
+              {
+                id: "concept:yagni-indicator", label: "YAGNI indicator", need: "need:guidance", corpus: "Design knowledge", version: "v1", sourceStatus: "active", hardFit: true, rank: 0.78, origin: "search", generators: ["vector", "Concept indicator graph"], bearing: "answers", direct: true, recommended: true,
+                content: "A planned abstraction has no current second use or concrete requirement.", assessments: ["source:attributed-practice-guide", "scope:software-design"],
+              },
+              {
+                id: "concept:yagni-exception", label: "YAGNI exception", need: "need:guidance", corpus: "Design knowledge", version: "v1", sourceStatus: "active", hardFit: true, rank: 0.61, origin: "completion", generators: ["hasException relation"], bearing: "qualifies", direct: true, recommended: true,
+                content: "Do the work now when an external contract makes later change materially expensive.", assessments: ["source:attributed-practice-guide", "scope:software-design"], relation: "qualifies the matched Concept",
+              },
+            ],
+          },
+        ];
+
+        const clone = (value) => JSON.parse(JSON.stringify(value));
+        const scenarioById = (id) => scenarios.find((scenario) => scenario.id === id);
+        const phaseAtLeast = (state, phase) => phases.indexOf(state.phase) >= phases.indexOf(phase);
+
+        const initialState = (scenarioId = scenarios[0].id, selectedChoices = recommended) => ({
+          scenarioId,
+          choices: clone(selectedChoices),
+          phase: "received",
+          activity: "urn:activity:grounding-prototype",
+          needs: [],
+          constraints: [],
+          authorizedCorpora: [],
+          candidates: [],
+          needStatus: [],
+          packet: null,
+          history: ["Task received. No retrieval has happened."],
+          lastChange: "Ready to interpret the task.",
+        });
+
+        const requirePhase = (state, expected, actionLabel) => {
+          if (state.phase === expected) return null;
+          const next = clone(state);
+          next.lastChange = `${actionLabel} is not legal in ${state.phase}. Complete the preceding step or reset.`;
+          next.history.push(next.lastChange);
+          return next;
+        };
+
+        const interpret = (state) => {
+          const illegal = requirePhase(state, "received", "Interpret task");
+          if (illegal) return illegal;
+          const scenario = scenarioById(state.scenarioId);
+          const next = clone(state);
+          next.phase = "interpreted";
+          next.needs = state.choices.interpretation === "needs"
+            ? clone(scenario.needs)
+            : [{ id: "need:query", kind: "question", text: scenario.task }];
+          next.constraints = scenario.explicitConstraints.map((text) => ({ source: "explicit", text }));
+          next.inferredCues = scenario.inferredCues.map((text) => ({ source: "inferred-cue", text }));
+          next.lastChange = state.choices.interpretation === "needs"
+            ? `Named ${next.needs.length} Information need${next.needs.length === 1 ? "" : "s"}. Inferred cues remain search hints, not hard constraints.`
+            : "Collapsed the task into one search query. Evidence can no longer report bearing per real need.";
+          next.history.push(next.lastChange);
+          return next;
+        };
+
+        const authorize = (state) => {
+          const illegal = requirePhase(state, "interpreted", "Authorize Corpus access");
+          if (illegal) return illegal;
+          const scenario = scenarioById(state.scenarioId);
+          const next = clone(state);
+          next.phase = "authorized";
+          next.authorizedCorpora = [scenario.corpus];
+          next.lastChange = `Authorized only ${scenario.corpus}. The search layer receives no handle for another Corpus boundary.`;
+          next.history.push(next.lastChange);
+          return next;
+        };
+
+        const retrieve = (state) => {
+          const illegal = requirePhase(state, "authorized", "Generate candidates");
+          if (illegal) return illegal;
+          const scenario = scenarioById(state.scenarioId);
+          const next = clone(state);
+          let candidates = scenario.candidates.filter((candidate) => candidate.origin === "search");
+          if (state.choices.retrieval === "blended") {
+            candidates = candidates.slice().sort((a, b) => b.rank - a.rank).slice(0, 3);
+          }
+          next.candidates = candidates.map((candidate) => ({ ...clone(candidate), state: "candidate", reasons: [`Generated by ${candidate.generators.join(" + ")}`] }));
+          next.phase = "retrieved";
+          next.lastChange = state.choices.retrieval === "per-need"
+            ? `Generated ${next.candidates.length} candidates across the named needs. Search scores are diagnostic only.`
+            : `Kept one blended top-3 list. A busy need can crowd out another need.`;
+          next.history.push(next.lastChange);
+          return next;
+        };
+
+        const applyConstraints = (state) => {
+          const illegal = requirePhase(state, "retrieved", "Apply hard constraints");
+          if (illegal) return illegal;
+          const next = clone(state);
+          next.candidates = next.candidates.map((candidate) => {
+            if (candidate.sourceStatus === "removed" || candidate.sourceStatus === "restricted") {
+              return { ...candidate, state: "rejected", reasons: [...candidate.reasons, `Source status is ${candidate.sourceStatus}`] };
+            }
+            if (state.choices.constraints === "gate" && candidate.hardFit === false) {
+              return { ...candidate, state: "rejected", reasons: [...candidate.reasons, candidate.hardReason] };
+            }
+            if (candidate.hardFit === "unknown") {
+              return { ...candidate, state: "eligible-unknown", reasons: [...candidate.reasons, candidate.hardReason] };
+            }
+            if (state.choices.constraints === "penalty" && candidate.hardFit === false) {
+              return { ...candidate, state: "eligible-penalized", reasons: [...candidate.reasons, `Penalty only: ${candidate.hardReason}`] };
+            }
+            return { ...candidate, state: "eligible", reasons: [...candidate.reasons, "All recorded hard constraints satisfied"] };
+          });
+          next.phase = "filtered";
+          const rejected = next.candidates.filter((candidate) => candidate.state === "rejected").length;
+          next.lastChange = state.choices.constraints === "gate"
+            ? `Rejected ${rejected} ineligible candidate${rejected === 1 ? "" : "s"} before ranking.`
+            : "Converted a hard constraint violation into a score penalty. The wrong material may still win.";
+          next.history.push(next.lastChange);
+          return next;
+        };
+
+        const selectCandidates = (state, candidates = state.candidates) => {
+          const selectable = candidates.filter((candidate) => candidate.state !== "rejected");
+          let selectedIds;
+          if (state.choices.selection === "policy") {
+            selectedIds = new Set(selectable.filter((candidate) => candidate.recommended).map((candidate) => candidate.id));
+          } else {
+            selectedIds = new Set(selectable.slice().sort((a, b) => b.rank - a.rank).slice(0, 3).map((candidate) => candidate.id));
+          }
+          return candidates.map((candidate) => {
+            if (!selectedIds.has(candidate.id)) return { ...candidate, state: candidate.state === "rejected" ? "rejected" : "not-selected" };
+            const baseReasons = candidate.reasons.filter((reason) => !reason.startsWith("Selected for ") && !reason.startsWith("Selected from search rank ") && !reason.startsWith("Assessment: "));
+            const selectionReasons = state.choices.selection === "policy"
+              ? [`Selected for ${candidate.bearing} bearing`, ...candidate.assessments.map((assessment) => `Assessment: ${assessment}`)]
+              : [`Selected from search rank ${candidate.rank}`];
+            return { ...candidate, state: "selected", reasons: [...baseReasons, ...selectionReasons] };
+          });
+        };
+
+        const assess = (state) => {
+          const illegal = requirePhase(state, "filtered", "Assess and select");
+          if (illegal) return illegal;
+          const next = clone(state);
+          next.candidates = selectCandidates(state);
+          next.phase = "assessed";
+          const count = next.candidates.filter((candidate) => candidate.state === "selected").length;
+          next.lastChange = state.choices.selection === "policy"
+            ? `Selected ${count} candidates for a stated Evidence role using the reference policy and attributed Assessments.`
+            : `Selected ${count} candidates by similarity. Source authority and applicability have no decisive role.`;
+          next.history.push(next.lastChange);
+          return next;
+        };
+
+        const completeTrails = (state) => {
+          const illegal = requirePhase(state, "assessed", "Complete source trails");
+          if (illegal) return illegal;
+          const scenario = scenarioById(state.scenarioId);
+          const next = clone(state);
+          if (state.choices.completion === "expand") {
+            const additions = scenario.candidates
+              .filter((candidate) => candidate.origin === "completion")
+              .map((candidate) => {
+                let candidateState = "eligible";
+                const reasons = [`Found through ${candidate.relation || candidate.generators.join(" + ")}`];
+                if (state.choices.constraints === "gate" && candidate.hardFit === false) {
+                  candidateState = "rejected";
+                  reasons.push(candidate.hardReason);
+                } else if (candidate.hardFit === "unknown") {
+                  candidateState = "eligible-unknown";
+                  reasons.push(candidate.hardReason);
+                } else {
+                  reasons.push("All recorded hard constraints satisfied");
+                }
+                return { ...clone(candidate), state: candidateState, reasons };
+              });
+            const combined = [...next.candidates, ...additions];
+            next.candidates = selectCandidates(state, combined);
+            next.lastChange = `Added ${additions.length} related candidate${additions.length === 1 ? "" : "s"}, reapplied constraints, and reassessed the selection.`;
+          } else {
+            next.lastChange = "Stopped at direct search hits. Corrections, competing positions, and required evidence-set members remain unseen.";
+          }
+          next.phase = "completed";
+          next.history.push(next.lastChange);
+          return next;
+        };
+
+        const decideCoverage = (state) => {
+          const illegal = requirePhase(state, "completed", "Decide coverage");
+          if (illegal) return illegal;
+          const scenario = scenarioById(state.scenarioId);
+          const next = clone(state);
+          const selected = next.candidates.filter((candidate) => candidate.state === "selected");
+          const statuses = state.needs.map((need) => {
+            const mappedNeed = state.choices.interpretation === "needs" ? need.id : scenario.needs[0].id;
+            const material = selected.filter((candidate) => state.choices.interpretation === "query" || candidate.need === mappedNeed);
+            const direct = material.filter((candidate) => candidate.direct);
+            const supports = direct.filter((candidate) => ["supports", "answers"].includes(candidate.bearing));
+            const contradicts = direct.filter((candidate) => candidate.bearing === "contradicts");
+            const qualifies = direct.filter((candidate) => candidate.bearing === "qualifies");
+            if (scenario.missingInput && state.choices.followup === "groundset") {
+              return { need: need.id, coverage: "partial", disagreement: "unresolved", reason: scenario.missingInput.reason };
+            }
+            if (scenario.id === "laravel-superseded" && material.some((candidate) => candidate.id === "fs:retry-old") && material.some((candidate) => candidate.id === "fs:retry-new")) {
+              return { need: need.id, coverage: "covered", disagreement: "resolved by explicit supersession", reason: "A cited supersedes relation identifies the active Snapshot without erasing the prior answer." };
+            }
+            if (supports.length && contradicts.length) {
+              const resolved = scenario.id === "laravel-superseded" && state.choices.completion === "expand";
+              return { need: need.id, coverage: "covered", disagreement: resolved ? "resolved by explicit supersession" : "unresolved", reason: resolved ? "A cited supersedes relation identifies the active Snapshot." : "Applicable selected material bears in both directions." };
+            }
+            if (supports.length || contradicts.length || qualifies.length) {
+              return { need: need.id, coverage: "covered", disagreement: "none", reason: "At least one applicable direct selection bears on this need." };
+            }
+            return { need: need.id, coverage: "gap", disagreement: "none", reason: "No selected applicable material directly bears on this need." };
+          });
+
+          if (state.choices.stopping === "fixed") {
+            statuses.forEach((entry) => {
+              if (entry.coverage === "gap") entry.reason = "Fixed top-k stopped without proving whether more retrieval could cover this need.";
+            });
+          }
+          next.needStatus = statuses;
+          next.phase = "decided";
+          const gaps = statuses.filter((entry) => entry.coverage === "gap").length;
+          const conflicts = statuses.filter((entry) => entry.disagreement !== "none").length;
+          next.lastChange = `Marked ${gaps} gap${gaps === 1 ? "" : "s"} and ${conflicts} conflict or qualification state${conflicts === 1 ? "" : "s"}.`;
+          next.history.push(next.lastChange);
+          return next;
+        };
+
+        const assemble = (state) => {
+          const illegal = requirePhase(state, "decided", "Assemble packet");
+          if (illegal) return illegal;
+          const scenario = scenarioById(state.scenarioId);
+          const next = clone(state);
+          let selected = next.candidates.filter((candidate) => candidate.state === "selected");
+          if (state.choices.packing === "global") {
+            selected = selected.slice().sort((a, b) => b.rank - a.rank).slice(0, 2);
+          } else {
+            const byNeed = new Map();
+            selected.forEach((candidate) => {
+              if (!byNeed.has(candidate.need)) byNeed.set(candidate.need, []);
+              byNeed.get(candidate.need).push(candidate);
+            });
+            selected = [...byNeed.values()].flatMap((items) => {
+              const decisive = items.filter((candidate) => candidate.direct);
+              return decisive.length ? decisive : items.slice(0, 1);
+            });
+          }
+
+          const packet = {
+            schema: "https://example.org/groundset/evidence-packet/v1",
+            grounding: {
+              activity: state.activity,
+              policy: "https://example.org/grounding-policy/reference/v1",
+              corpus: state.authorizedCorpora,
+            },
+            task: {
+              text: scenario.task,
+              needs: state.needs,
+              explicitConstraints: state.constraints,
+            },
+            status: {
+              coverage: state.needStatus.some((entry) => entry.coverage === "gap" || entry.coverage === "partial") ? "partial" : "covered",
+              disagreement: state.needStatus.some((entry) => entry.disagreement === "unresolved")
+                ? "unresolved"
+                : state.needStatus.some((entry) => entry.disagreement.startsWith("resolved")) ? "resolved" : "none",
+              needs: state.needStatus,
+            },
+            conceptMatches: scenario.conceptMatch && state.choices.retrieval === "per-need"
+              ? [{ ...scenario.conceptMatch, cues: scenario.inferredCues, selectedBy: state.activity }]
+              : [],
+            evidence: selected.map((candidate) => ({
+              id: `item:${candidate.id}`,
+              label: candidate.label,
+              source: candidate.id,
+              content: candidate.content,
+              bearing: { need: candidate.need, kind: candidate.bearing },
+              applicability: candidate.hardFit === "unknown" ? "unknown" : "satisfied",
+              selection: {
+                policy: state.choices.selection === "policy" ? "reference/v1" : "similarity-only",
+                reasons: candidate.reasons,
+                assessments: candidate.assessments,
+              },
+            })),
+            gaps: state.needStatus
+              .filter((entry) => entry.coverage === "gap")
+              .map((entry) => ({ need: entry.need, reason: entry.reason })),
+            followUps: scenario.missingInput && state.choices.followup === "groundset"
+              ? [{ type: "caller-clarification", need: scenario.needs[0].id, question: scenario.missingInput.question, reason: scenario.missingInput.reason, constraints: { required: scenario.missingInput.key }, continuation: "opaque:prototype" }]
+              : [],
+            budget: { items: 6, used: selected.length, strategy: state.choices.packing },
+          };
+          next.packet = packet;
+          next.phase = "assembled";
+          next.lastChange = `Assembled ${selected.length} Evidence item${selected.length === 1 ? "" : "s"}; the Agent receives no rejected candidates or retrieval scores.`;
+          next.history.push(next.lastChange);
+          return next;
+        };
+
+        const stepActions = [
+          { type: "INTERPRET", label: "1. Interpret task", run: interpret },
+          { type: "AUTHORIZE", label: "2. Authorize Corpus", run: authorize },
+          { type: "RETRIEVE", label: "3. Generate candidates", run: retrieve },
+          { type: "FILTER", label: "4. Apply constraints", run: applyConstraints },
+          { type: "ASSESS", label: "5. Assess and select", run: assess },
+          { type: "COMPLETE", label: "6. Complete trails", run: completeTrails },
+          { type: "DECIDE", label: "7. Decide coverage", run: decideCoverage },
+          { type: "ASSEMBLE", label: "8. Assemble packet", run: assemble },
+        ];
+
+        const reduce = (state, action) => {
+          if (action.type === "LOAD_SCENARIO") return initialState(action.scenarioId, state.choices);
+          if (action.type === "RESET") return initialState(state.scenarioId, state.choices);
+          if (action.type === "RESET_RECOMMENDED") return initialState(state.scenarioId, recommended);
+          if (action.type === "SET_CHOICE") {
+            const nextChoices = { ...state.choices, [action.id]: action.value };
+            const next = initialState(state.scenarioId, nextChoices);
+            next.lastChange = "Design choice changed. The Grounding Activity reset so the new behavior can run cleanly.";
+            return next;
+          }
+          if (action.type === "RUN_CURRENT") {
+            return stepActions.reduce((current, step) => step.run(current), initialState(state.scenarioId, state.choices));
+          }
+          const step = stepActions.find((candidate) => candidate.type === action.type);
+          return step ? step.run(state) : state;
+        };
+
+        return { choices, recommended, scenarios, phases, stepActions, initialState, reduce, phaseAtLeast };
+      })();
+
+      const walkthroughs = [
+        {
+          id: "composite",
+          title: "Two-part proof",
+          scenarioId: "feverous-composite",
+          copy: "Watch Groundset split the claim into two needs. Hybrid retrieval and reserved budget keep the lower-ranked club evidence from disappearing behind Rivera biography hits.",
+        },
+        {
+          id: "version",
+          title: "Version trap",
+          scenarioId: "laravel-version",
+          copy: "The Laravel 10 answer is the closest text match. A hard version constraint must remove it before policy selection.",
+        },
+        {
+          id: "conflict",
+          title: "Hidden conflict",
+          scenarioId: "feverous-conflict",
+          copy: "Direct hits appear to support both propositions. Completing the evidence trail reveals the architect table that contradicts one of them.",
+        },
+        {
+          id: "missing",
+          title: "No answer",
+          scenarioId: "feverous-missing",
+          copy: "Related biographies and award lists are not proof. The recommended flow produces a named gap and sends no filler to the model.",
+        },
+        {
+          id: "clarify",
+          title: "Ask once",
+          scenarioId: "laravel-ambiguous",
+          copy: "Laravel 10 and 11 are both valid under unknown Scope. Groundset returns the conditional evidence and one typed question about the missing version.",
+        },
+        {
+          id: "concept",
+          title: "Unnamed idea",
+          scenarioId: "concept-cue",
+          copy: "Concrete task cues retrieve an attributed Concept indicator and its exception. The task never says YAGNI.",
+        },
+      ];
+
+      let state = GroundingPrototype.initialState();
+      let activeWalkthrough = walkthroughs[0].id;
+      let walkthroughStep = 0;
+
+      const escapeHtml = (value) => String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+
+      const dispatch = (action) => {
+        state = GroundingPrototype.reduce(state, action);
+        render();
+      };
+
+      const currentScenario = () => GroundingPrototype.scenarios.find((scenario) => scenario.id === state.scenarioId);
+
+      const renderChoices = () => {
+        document.querySelector("#choices").innerHTML = GroundingPrototype.choices.map((choice) => `
+          <div class="choice">
+            <h3>${escapeHtml(choice.title)}</h3>
+            <div class="choice-options">
+              ${choice.options.map((option) => `
+                <button
+                  data-choice="${choice.id}"
+                  data-value="${option.value}"
+                  aria-pressed="${state.choices[choice.id] === option.value}"
+                >${escapeHtml(option.label)}</button>
+              `).join("")}
+            </div>
+            <p>${escapeHtml(choice.note)}</p>
+          </div>
+        `).join("");
+        document.querySelectorAll("[data-choice]").forEach((button) => {
+          button.addEventListener("click", () => dispatch({ type: "SET_CHOICE", id: button.dataset.choice, value: button.dataset.value }));
+        });
+      };
+
+      const renderScenarios = () => {
+        document.querySelector("#scenario-buttons").innerHTML = GroundingPrototype.scenarios.map((scenario) => `
+          <button data-scenario="${scenario.id}" aria-current="${scenario.id === state.scenarioId}">${escapeHtml(scenario.corpus)}: ${escapeHtml(scenario.title)}</button>
+        `).join("");
+        document.querySelectorAll("[data-scenario]").forEach((button) => {
+          button.addEventListener("click", () => {
+            walkthroughStep = 0;
+            dispatch({ type: "LOAD_SCENARIO", scenarioId: button.dataset.scenario });
+          });
+        });
+      };
+
+      const renderActions = () => {
+        document.querySelector("#action-buttons").innerHTML = GroundingPrototype.stepActions.map((action) => `
+          <button data-action="${action.type}">${escapeHtml(action.label)}</button>
+        `).join("");
+        document.querySelectorAll("[data-action]").forEach((button) => {
+          button.addEventListener("click", () => dispatch({ type: button.dataset.action }));
+        });
+      };
+
+      const renderStateStrip = () => {
+        const selected = state.candidates.filter((candidate) => candidate.state === "selected").length;
+        const gaps = state.needStatus.filter((need) => need.coverage === "gap").length;
+        const disagreement = state.needStatus.find((need) => need.disagreement !== "none")?.disagreement || "none";
+        const cards = [
+          ["Phase", state.phase],
+          ["Needs", state.needs.length || "not named"],
+          ["Candidates", state.candidates.length],
+          ["Selected", selected],
+          ["Gap / conflict", `${gaps} / ${disagreement}`],
+        ];
+        document.querySelector("#state-strip").innerHTML = cards.map(([label, value]) => `
+          <div class="state-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>
+        `).join("");
+      };
+
+      const renderVerdict = () => {
+        const departures = Object.entries(GroundingPrototype.recommended)
+          .filter(([key, value]) => state.choices[key] !== value)
+          .map(([key]) => key);
+        const complete = state.phase === "assembled";
+        const packet = state.packet;
+        const badVersion = packet?.evidence.some((item) => item.source === "fs:so-kernel");
+        const missedConflict = state.scenarioId === "feverous-conflict" && complete && packet.status.disagreement === "none";
+        const paddedGap = state.scenarioId === "feverous-missing" && complete && packet.evidence.length > 0;
+        const failed = badVersion || missedConflict || paddedGap;
+        const verdict = document.querySelector("#verdict");
+        verdict.className = `verdict ${departures.length || failed ? "warn" : "good"}`;
+        if (failed) {
+          verdict.innerHTML = `<strong>The model received an answer-changing mistake.</strong> The current choices selected an inapplicable answer, hid a conflict, or padded an unsupported need.`;
+        } else if (departures.length) {
+          verdict.innerHTML = `<strong>${departures.length} choice${departures.length === 1 ? "" : "s"} differ from the recommendation.</strong> Run the case and inspect whether Groundset still owns relevance filtering.`;
+        } else {
+          verdict.innerHTML = `<strong>Recommended flow.</strong> Groundset owns eligibility, selection, conflict completion, coverage, and follow-up. The model receives the result, not the candidate pool.`;
+        }
+      };
+
+      const renderTask = () => {
+        const scenario = currentScenario();
+        document.querySelector("#scenario-title").textContent = scenario.title;
+        document.querySelector("#scenario-summary").textContent = scenario.summary;
+        document.querySelector("#task-view").innerHTML = `
+          <h4>Caller task</h4>
+          <blockquote>${escapeHtml(scenario.task)}</blockquote>
+          <p class="compact"><strong>Explicit inputs</strong></p>
+          ${scenario.explicitConstraints.length ? `<ul>${scenario.explicitConstraints.map((text) => `<li>${escapeHtml(text)}</li>`).join("")}</ul>` : `<p class="notice">No version or date constraint was supplied.</p>`}
+          <p class="compact"><strong>Concrete cues</strong></p>
+          <ul>${scenario.inferredCues.map((text) => `<li>${escapeHtml(text)}</li>`).join("")}</ul>
+        `;
+
+        if (!state.needs.length) {
+          document.querySelector("#needs-view").innerHTML = `<h4>Interpretation</h4><p>No Information needs or hard constraints have been recorded yet.</p>`;
+          return;
+        }
+        document.querySelector("#needs-view").innerHTML = `
+          <h4>Interpretation</h4>
+          <ol>${state.needs.map((need) => `<li><span class="badge">${escapeHtml(need.kind)}</span>${escapeHtml(need.text)}</li>`).join("")}</ol>
+          <p><strong>Hard constraints:</strong> ${state.constraints.length ? state.constraints.map((constraint) => escapeHtml(constraint.text)).join("; ") : "none supplied"}</p>
+          <p><strong>Last change:</strong> ${escapeHtml(state.lastChange)}</p>
+        `;
+      };
+
+      const candidateClass = (candidateState) => {
+        if (candidateState === "selected") return "selected";
+        if (candidateState === "rejected") return "rejected";
+        if (candidateState.includes("unknown") || candidateState.includes("penalized")) return "qualified";
+        return "pending";
+      };
+
+      const renderCandidates = () => {
+        if (!state.candidates.length) {
+          document.querySelector("#candidate-view").innerHTML = `<div class="panel"><p>No candidates are visible. Corpus authorization and retrieval have not both completed.</p></div>`;
+          return;
+        }
+        document.querySelector("#candidate-view").innerHTML = `
+          <table class="pipeline">
+            <thead><tr><th>Material</th><th>Need and Scope</th><th>Pipeline state</th><th>Why</th></tr></thead>
+            <tbody>
+              ${state.candidates.map((candidate) => `
+                <tr>
+                  <td><strong>${escapeHtml(candidate.label)}</strong><br />${escapeHtml(candidate.content)}</td>
+                  <td>${escapeHtml(candidate.need)}<br />${escapeHtml(candidate.version)}<br /><span class="badge">${escapeHtml(candidate.bearing)}</span></td>
+                  <td class="${candidateClass(candidate.state)}"><strong>${escapeHtml(candidate.state)}</strong><br />search rank ${candidate.rank}</td>
+                  <td><ul class="compact">${candidate.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("")}</ul></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+          <p class="notice">Search ranks stay here for inspection. The Evidence packet never sends them to the model.</p>
+        `;
+      };
+
+      const renderPacket = () => {
+        const view = document.querySelector("#packet-view");
+        if (!state.packet) {
+          view.innerHTML = `<p>No packet yet. Groundset must finish coverage decisions before assembly.</p>`;
+          return;
+        }
+        const packet = state.packet;
+        const concept = packet.conceptMatches.length
+          ? `<div class="good-note"><strong>Concept match:</strong> ${escapeHtml(packet.conceptMatches[0].label)}. ${escapeHtml(packet.conceptMatches[0].reason)}</div>`
+          : "";
+        const evidence = packet.evidence.length
+          ? packet.evidence.map((item) => `
+              <div class="evidence-item">
+                <h4>${escapeHtml(item.label)}</h4>
+                <span class="badge ${item.bearing.kind === "contradicts" ? "rejected" : "selected"}">${escapeHtml(item.bearing.kind)}</span>
+                <span class="badge">${escapeHtml(item.bearing.need)}</span>
+                <p>${escapeHtml(item.content)}</p>
+                <p><strong>Source:</strong> ${escapeHtml(item.source)}</p>
+              </div>
+            `).join("")
+          : `<p class="notice">No weak context was added to fill the budget.</p>`;
+        const gaps = packet.gaps.length
+          ? `<div class="notice"><strong>Gap:</strong> ${packet.gaps.map((gap) => `${escapeHtml(gap.need)}: ${escapeHtml(gap.reason)}`).join("; ")}</div>`
+          : "";
+        const followups = packet.followUps.length
+          ? `<div class="notice"><strong>Focused follow-up:</strong> ${escapeHtml(packet.followUps[0].question)} ${escapeHtml(packet.followUps[0].reason)}</div>`
+          : "";
+        view.innerHTML = `
+          <p><span class="badge">coverage ${escapeHtml(packet.status.coverage)}</span><span class="badge">disagreement ${escapeHtml(packet.status.disagreement)}</span></p>
+          ${concept}${evidence}${gaps}${followups}
+          <p><strong>Budget:</strong> ${packet.budget.used} of ${packet.budget.items} items, packed by ${escapeHtml(packet.budget.strategy)}.</p>
+        `;
+      };
+
+      const renderWalkthroughs = () => {
+        const active = walkthroughs.find((walkthrough) => walkthrough.id === activeWalkthrough);
+        document.querySelector("#walkthrough-tabs").innerHTML = walkthroughs.map((walkthrough) => `
+          <button data-walkthrough="${walkthrough.id}" aria-current="${walkthrough.id === activeWalkthrough}">${escapeHtml(walkthrough.title)}</button>
+        `).join("");
+        document.querySelector("#walkthrough-copy").textContent = active.copy;
+        document.querySelector("#walkthrough-steps").innerHTML = GroundingPrototype.stepActions.map((action, index) => `
+          <button data-walkthrough-step="${index}" class="${index < walkthroughStep ? "done" : ""}">${escapeHtml(action.label)}</button>
+        `).join("");
+        document.querySelectorAll("[data-walkthrough]").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeWalkthrough = button.dataset.walkthrough;
+            walkthroughStep = 0;
+            const next = walkthroughs.find((walkthrough) => walkthrough.id === activeWalkthrough);
+            state = GroundingPrototype.initialState(next.scenarioId, GroundingPrototype.recommended);
+            render();
+          });
+        });
+        document.querySelectorAll("[data-walkthrough-step]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const index = Number(button.dataset.walkthroughStep);
+            if (index === 0 && state.scenarioId !== active.scenarioId) state = GroundingPrototype.initialState(active.scenarioId, GroundingPrototype.recommended);
+            if (index !== walkthroughStep) {
+              state.lastChange = `Walkthrough step ${walkthroughStep + 1} comes next.`;
+              render();
+              return;
+            }
+            state = GroundingPrototype.reduce(state, { type: GroundingPrototype.stepActions[index].type });
+            walkthroughStep += 1;
+            render();
+          });
+        });
+      };
+
+      const render = () => {
+        renderChoices();
+        renderScenarios();
+        renderActions();
+        renderStateStrip();
+        renderVerdict();
+        renderTask();
+        renderCandidates();
+        renderPacket();
+        renderWalkthroughs();
+        document.querySelector("#state-json").textContent = JSON.stringify(state, null, 2);
+        document.querySelector("#footer-state").textContent = `Throwaway prototype. ${state.lastChange}`;
+      };
+
+      document.querySelector("#run").addEventListener("click", () => {
+        state = GroundingPrototype.reduce(state, { type: "RUN_CURRENT" });
+        walkthroughStep = GroundingPrototype.stepActions.length;
+        render();
+      });
+      document.querySelector("#reset").addEventListener("click", () => {
+        walkthroughStep = 0;
+        dispatch({ type: "RESET" });
+      });
+      document.querySelector("#defaults").addEventListener("click", () => {
+        walkthroughStep = 0;
+        dispatch({ type: "RESET_RECOMMENDED" });
+      });
+      render();
+    </script>
+  </body>
+</html>
