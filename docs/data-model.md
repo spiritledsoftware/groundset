@@ -24,6 +24,28 @@ Canonical records do not carry per-record access-control rules. Such rules would
 
 Public corpus deployments contain no private record, selector, derived Assertion, or opaque pointer that would disclose restricted material.
 
+## Repositories, releases, and composition
+
+A publisher prepares changing material in a Corpus repository, then publishes immutable Corpus releases. The repository is working state. Consumers depend on releases, not on whatever happens to be in the repository today.
+
+Each release has a manifest that declares its complete logical membership and any exact immutable Release dependencies. The hash of that manifest is the release's permanent identity. Publisher-scoped names and versions are labels for people; hosted services and catalogs do not assign canonical identity.
+
+Every Snapshot's exact bytes must remain available from the release or its declared dependencies. A package may fetch content lazily or reuse immutable files from another release, but it must not depend on a mutable web page or replay a change log to determine what belongs to the release.
+
+Consumers form a Corpus composition by selecting exact releases to query together. They may resolve a friendly label before use, but Grounding runs against the resolved identities and records them in its Evidence packet. Byte-identical Canonical records may overlap between releases. Different records using the same identifier make the composition invalid; load order never decides which one wins.
+
+Publishing another version does not change or replace an earlier release. Publishers may identify a recommended successor, and consumers choose when to update. Claim-level correction and supersession remain explicit Assertions rather than consequences of a release version number.
+
+Publishers may extend another publisher's release through exact dependencies or derivation while preserving attribution, license obligations, and both publisher identities. Several catalogs and mirrors may list the same release. Consumers verify the manifest identity and a separate publisher attestation after download.
+
+A publisher withdraws a release by publishing a verifiable notice rather than mutating it. Ordinary Grounding excludes a known withdrawn release by default; explicit audit or archival work may use it while reporting the withdrawal and when status was last checked. An offline deployment can only act on the notices it has synchronized, and already distributed copies cannot be erased remotely.
+
+The same release model applies to public and private material. Downloadable means portable, not public. Authorization and encryption remain protections around the Corpus boundary rather than per-record policy.
+
+The Hosted service is optional. It may prepare repositories, publish and catalog releases, distribute content, build indexes, run Grounding, and manage private Corpus boundaries. Independent tools must still be able to validate and use a release without that service.
+
+Groundset v1 will define one required portable package format and conformance checks, but it will not require a database or publisher-repository layout. Search projections remain outside the Canonical release. Publishers may distribute replaceable prebuilt indexes tied to exact release compositions, and consumers may rebuild them with other tools.
+
 ## Canonical record kinds
 
 ### Entity
@@ -530,7 +552,7 @@ The first version will not define:
 - the published schema URI and permanent vocabulary IRIs;
 - the complete Corpus conformance and extension-profile specifications;
 - corpus-boundary authorization and export-policy enforcement;
-- the repository and downloadable corpus-release format;
+- the exact downloadable Corpus-release encoding and publisher-attestation standard;
 - automatic semantic claim deduplication;
 - a general inference engine;
 - a global source authority score;

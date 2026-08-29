@@ -84,6 +84,46 @@ _Avoid_: Reference, database relation
 An attributed selection of records assembled for a purpose. Membership does not imply that all members share a Category.
 _Avoid_: Category, corpus
 
+**Corpus repository**:
+A publisher-controlled body of changing material used to prepare Corpus releases. Its current contents are not a published version that consumers can rely on.
+_Avoid_: Corpus release, source of truth
+
+**Corpus release**:
+An immutable, identified publication of a Corpus that consumers can download, verify, and use without a Groundset-hosted service.
+_Avoid_: Corpus repository, live corpus
+
+**Release manifest**:
+The complete, fixed membership and exact dependencies of a Corpus release. Its hash is the release's permanent identity; names and versions are publisher-scoped labels.
+_Avoid_: Package filename, mutable catalog entry
+
+**Release dependency**:
+An exact immutable Corpus release that another release requires. Version ranges and changing aliases are not dependencies.
+_Avoid_: Latest version, search source
+
+**Publisher attestation**:
+A verifiable statement that binds a publisher to a Corpus release identity. Content integrity alone does not establish who published a release.
+_Avoid_: Central approval, authority score
+
+**Corpus composition**:
+A consumer's selection of exact Corpus releases to query together. Composition preserves each release's identity and does not create a new published release.
+_Avoid_: Merged corpus, republished corpus
+
+**Release withdrawal**:
+A publisher's notice that a fixed Corpus release should no longer be distributed or used ordinarily. Withdrawal does not alter the release or erase copies already held for audit or archival purposes.
+_Avoid_: Deletion, mutation
+
+**Federated publication**:
+The publication of conforming Corpus releases by independent publishers without requiring approval from one central registry. Consumers choose which publishers and releases to use.
+_Avoid_: Central curation, unverified trust
+
+**Hosted service**:
+An optional managed Groundset service for preparing, finding, distributing, indexing, and Grounding Corpus releases. A Corpus release remains usable without the Hosted service.
+_Avoid_: Corpus authority, required runtime
+
+**Release catalog**:
+A discovery listing for Corpus releases. Several catalogs and mirrors may list the same release, but none assigns or changes its identity.
+_Avoid_: Release authority, canonical registry
+
 **Corpus boundary**:
 The storage and authorization boundary containing canonical records and any derived indexes or Evidence packets. Material crosses it only through an explicit publication or export operation. A Corpus boundary is not a canonical record or semantic grouping.
 _Avoid_: Collection, record ACL
